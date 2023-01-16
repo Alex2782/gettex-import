@@ -63,9 +63,6 @@ for url_path in ("pretrade-data/", "posttrade-data/"):
 
 print ("count files: ", len(files))
 
-
-
-
 for url in files:
     url = url.replace('"', '').replace('&amp;', '&');
     name = os.path.basename(url)
@@ -81,26 +78,7 @@ for url in files:
 
 
 
-
-#for h in range (5, 22):
-#    for t in ('00', '15', '30', '45'):
-#        print(str(h) + "." + t)
-
-
-#Download pretrade csv.gz
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#date = "20230116"
-#time = "10.30"
-#url = "https://erdk.bayerische-boerse.de/?u=edd-MUNCD&p=public&path=/pretrade/pretrade."+date+"."+time+".munc.csv.gz"
-#output_path = "../data/pretrade."+date+"."+time+".munc.csv.gz"
-#download_url(url, output_path)
-#---------------------------------------------------------
-
-
 # TODO Stammdaten
 # https://mein.finanzen-zero.net/assets/searchdata/downloadable-instruments.csv
 
 
-#download_url('https://www.gettex.de/handel/delayed-data/pretrade-data/', '../pretrade-data.html')
-#download_url('https://www.gettex.de/fileadmin/rts27/MUNC-MUND/2023/01/20230111_MUNC.zip', '../data/20230111_MUNC.zip')     
-#download_url('https://www.gettex.de/fileadmin/rts27/MUNC-MUND/2023/01/20230111_MUND.zip', '../data/20230111_MUND.zip')        
