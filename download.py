@@ -1,8 +1,10 @@
 import urllib.request
 import re
 import os.path
-
+from datetime import datetime
 from tqdm import tqdm
+
+
 
 # -------------------------------------------------
 # class DownloadProgressBar
@@ -46,6 +48,17 @@ def find_files(html):
     files = re.findall(r'(https?://erdk.bayerische-boerse.de[^\s]+)', html)
     return files
 
+# -------------------------------------------------
+# get_file_date
+# -------------------------------------------------
+def get_file_date(name):
+
+    arr = name.split('.', 2)
+    file_date = arr[1]
+    str_date = file_date[0:4] + '-' + file_date[4:6] + '-' + file_date[6:8]
+
+    return str_date
+
 # =======================================================================================================
 
 
@@ -53,7 +66,7 @@ init_request() # init 'User-agent' for all requests
 
 data_url = "https://www.gettex.de/handel/delayed-data/"
 
-# get pretrade and posttrade
+# get pretrade and posttrade file URLs
 files = []
 
 for url_path in ("pretrade-data/", "posttrade-data/"):
@@ -63,13 +76,20 @@ for url_path in ("pretrade-data/", "posttrade-data/"):
 
 print ("count files: ", len(files))
 
+#download all files
 for url in files:
     url = url.replace('"', '').replace('&amp;', '&');
     name = os.path.basename(url)
 
-    output_path = "../data/" + name
+    date = get_file_date(name)
+    output_path = "../data/" + date
 
-    #check '*.csv.gz' and '*.csv' files
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+    output_path += '/' + name
+
+    #check '*.csv.gz' and '*.csv' files, skip if already exist
     if os.path.isfile(output_path) or os.path.isfile(output_path[0:-3]):
         print ("SKIP: " + output_path)
         continue 
@@ -78,7 +98,7 @@ for url in files:
 
 
 
-# TODO Stammdaten
+# TODO main data
 # https://mein.finanzen-zero.net/assets/searchdata/downloadable-instruments.csv
 
 
