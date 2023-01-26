@@ -18,37 +18,31 @@ class DownloadProgressBar(tqdm):
         self.update(b * bsize - self.n)
 
 # ---------------------------------------------------------------------------------
-# strtime_to_timestamp: day timestamp in ms (max. value -> 23:59:59.999 = 86399999)
+# strtime_to_timestamp: day timestamp in minutes
 # ---------------------------------------------------------------------------------
 def strtime_to_timestamp(str):
 
     tmp = str.split('.')
     time = tmp[0]
-    ms = int(tmp[1][0:3])
 
     tmp = time.split(':')
     h = int(tmp[0])
     m = int(tmp[1])
-    s = int(tmp[2])
 
-    timestamp = h * 3600000 + m * 60000 + s * 1000 + ms
+    timestamp = h * 60 + m
 
     return timestamp
 
 # ---------------------------------------------------------------------------------
-# timestamp_to_strtime: HH:MM:SS.ms (max. value -> 86399999 = 23:59:59.999)
+# timestamp_to_strtime: HH:MM
 # ---------------------------------------------------------------------------------
 def timestamp_to_strtime(tm):
 
-    h = math.floor(tm / 3600000)
-    tm -= h * 3600000
-    m = math.floor(tm / 60000)
-    tm -= m * 60000
-    s = math.floor(tm / 1000)
-    tm -= s * 1000
-    ms = tm
+    h = math.floor(tm / 60)
+    tm -= h * 60
+    m = tm
 
-    return '{:02d}:{:02d}:{:02d}.{:03d}'.format(h, m, s, ms)
+    return '{:02d}:{:02d}'.format(h, m)
 
 # ---------------------------------------------------------------------------------
 # get_file_sizeinfo
@@ -156,6 +150,23 @@ def load_isin_dict(path = None):
 
     return isin_dict, isin_dict_idx
 
+# ------------------------------------------------------------------------------------
+# read_gz
+# ------------------------------------------------------------------------------------
+def cast_data(arr):
+    isin = arr[0]
+    tm = strtime_to_timestamp(arr[1])
+    currency = arr[2]
+
+    #cast to int and float, idx = 0 (timestamp) is already int
+    bid = float(arr[3]) #bid
+    bid_size = int(arr[4]) #bid_size
+    ask = float(arr[5]) #ask
+    ask_size = int(arr[6]) #ask_size
+
+    spread = round(ask - bid, 3)
+
+    return isin, tm, currency, bid, bid_size, ask, ask_size, spread
 
 # ------------------------------------------------------------------------------------
 # read_gz
@@ -183,9 +194,7 @@ def read_gz(path, isin_dict):
             data = str(line).replace("b'", "").replace("\\n'", '')
             tmp = data.split(',')
 
-            tmp[1] = strtime_to_timestamp(tmp[1])
-            isin = tmp[0]
-            currency = tmp[2]
+            isin, tm, currency, bid, bid_size, ask, ask_size, spread = cast_data(tmp)
 
             isin_obj = isin_dict.get(isin)
             if isin_obj is None: 
@@ -195,22 +204,14 @@ def read_gz(path, isin_dict):
             else:
                 isin_idx = isin_dict[isin]['id']
 
-            #delete isin and currency
-            del tmp[0]
-            del tmp[1]
 
             len_data = len(ret_data[isin_idx])
             if len_data == 0: #no data, init sub-arrays
                 ret_data[isin_idx].append([]) #sub-array #0 is for row data
                 ret_data[isin_idx].append([0, 0, 0, 0, 0]) #sub-array #1 is for extra data, [counter, ?, ? ,? ,?]
 
-            #cast to int and float, idx = 0 (timestamp) is already int
-            tmp[1] = float(tmp[1]) #bid
-            tmp[2] = int(tmp[2]) #bid_size
-            tmp[3] = float(tmp[3]) #ask
-            tmp[4] = int(tmp[4]) #ask_size
 
-            tmp = tuple(tmp)
+            data = (tm, bid, bid_size, ask, ask_size, spread)
 
             bNewData = True
             len_data = len(ret_data[isin_idx][0])
@@ -218,11 +219,11 @@ def read_gz(path, isin_dict):
             if len_data > 1:
                 last_data = ret_data[isin_idx][0][len_data - 1]
                 
-                if last_data[1:5] == tmp[1:5]: #check without timestamp (bid, bid_size, ask, ask_size)
+                if last_data[1:5] == data[1:5]: #check without timestamp (bid, bid_size, ask, ask_size)
                     bNewData = False
 
             if bNewData:
-                ret_data[isin_idx][0].append(tmp) #row data
+                ret_data[isin_idx][0].append(data) #row data
 
             ret_data[isin_idx][1][0] += 1 #counter
 
@@ -316,7 +317,7 @@ file = '../data/pretrade.20230111.21.00.munc.csv.gz' #60 KB
 
 #TODO Python verbraucht nach 'read_gz' 2,8 GB RAM
 #wenn die Wiederholungen entfernt werden, dann bei 1,34 GB
-#TODO auf 1 Sekunde oder 1 Minute zusammenfassen? berechnen: open, close, high, low
+#TODO auf 1 Sekunde oder 1 Minute zusammenfassen? berechnen: open, close, high, low, Spread (min, max)?
 isin_dict, arr = read_gz(file, isin_dict)
 
 count_row_data = 0
@@ -331,7 +332,7 @@ print('count_row_data:', count_row_data)
 print('saved_data:', saved_data)
 
 
-#DEV - Debug, Daten zusammenfassen, open, close, high, low
+#DEV - Debug, Daten zusammenfassen, open, close, high, low, Spread (min, max)?
 idx = 0
 for data in arr:
     if len(data) > 0:
