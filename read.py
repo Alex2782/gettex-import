@@ -31,6 +31,10 @@ def strtime_to_timestamp(str):
 
     timestamp = h * 60 + m
 
+    # TODO Performance überprüfen, Vorschlag von ChatGPT
+    # h, m = map(int, str.split(':')[:2])
+    # timestamp = h * 60 + m
+
     return timestamp
 
 # ---------------------------------------------------------------------------------
@@ -196,6 +200,9 @@ def read_gz(path, isin_dict):
 
             isin, tm, currency, bid, bid_size, ask, ask_size, spread = cast_data(tmp)
 
+            price = round(bid + spread / 2, 3)
+
+
             isin_obj = isin_dict.get(isin)
             if isin_obj is None: 
                 ret_data.append([])
@@ -210,20 +217,63 @@ def read_gz(path, isin_dict):
                 ret_data[isin_idx].append([]) #sub-array #0 is for row data
                 ret_data[isin_idx].append([0, 0, 0, 0, 0]) #sub-array #1 is for extra data, [counter, ?, ? ,? ,?]
 
-
-            data = (tm, bid, bid_size, ask, ask_size, spread)
+            #init bid_size, idx:1 = max, idx:2 = min
+            #init ask_size, idx:3 = max, idx:4 = min
+            #spread, idx: 5 = max, idx: 6 = min
+            #price (idx 7 to 10): open, high, low, close
+            #idx 11 = activity, count data
+            #idx 12, 13 = volatility long, short
+            #idx 14, 15, 16 = volatility activity long, short, equal (no changes)
+            data = [tm,  bid_size,bid_size,  ask_size,ask_size,  spread,spread,  price,price,price,price,  1,  0,0,  0,0,0] 
 
             bNewData = True
             len_data = len(ret_data[isin_idx][0])
             #print ('isin_idx:',isin_idx, 'data:', ret_data[isin_idx][0])
-            if len_data > 1:
+            if len_data > 0:
                 last_data = ret_data[isin_idx][0][len_data - 1]
-                
-                if last_data[1:5] == data[1:5]: #check without timestamp (bid, bid_size, ask, ask_size)
+
+                if last_data[0] == tm:
                     bNewData = False
+
+                    #bid_size, idx:1 = max, idx:2 = min
+                    if data[1] > last_data[1]: last_data[1] = data[1]
+                    if data[2] < last_data[2]: last_data[2] = data[2]
+                    
+                    #ask_size, idx:3 = max, idx:4 = min
+                    if data[3] > last_data[3]: last_data[3] = data[3]
+                    if data[4] < last_data[4]: last_data[4] = data[4]
+
+                    #spread, idx: 5 = max, idx: 6 = min
+                    if data[5] > last_data[5]: last_data[5] = data[5]
+                    if data[6] < last_data[6]: last_data[6] = data[6]
+                    
+                    #price: high(8), low(9), close(10)  -> hint: open(7) already initialized
+                    if data[8] > last_data[8]: last_data[8] = data[8]
+                    if data[9] < last_data[9]: last_data[9] = data[9]
+
+                    volatility = data[10] - last_data[10]
+                    last_data[10] = data[10]
+                    
+                    #activity
+                    last_data[11] += 1
+
+                    #idx 12, 13 = volatility long, short
+                    #idx 14, 15, 16 = volatility activity long, short, equal (no changes)
+                    if volatility > 0: 
+                        last_data[12] = round(last_data[12] + volatility, 3)
+                        last_data[14] += 1 
+                    elif volatility < 0: 
+                        last_data[13] = round(last_data[13] + volatility, 3)
+                        last_data[15] += 1
+                    else:
+                        last_data[16] += 1
 
             if bNewData:
                 ret_data[isin_idx][0].append(data) #row data
+                
+                #convert to tuple
+                if len_data > 1:
+                    ret_data[isin_idx][0][len_data-2] = tuple(ret_data[isin_idx][0][len_data-2])
 
             ret_data[isin_idx][1][0] += 1 #counter
 
@@ -307,12 +357,15 @@ isin_dict, isin_dict_idx = load_isin_dict()
 
 
 file = '../data/pretrade.20230111.21.00.munc.csv.gz' #60 KB
-#file = '../data/pretrade.20230111.21.00.mund.csv.gz' #207 MB
+file = '../data/pretrade.20230111.21.00.mund.csv.gz' #207 MB
 #file = '../data/pretrade.20230112.11.00.mund.csv.gz' #240 MB
 #file = '../data/pretrade.20230112.10.45.mund.csv.gz' #293 MB
-#file = '../data/pretrade.20230118.14.45.mund.csv.gz' #551 MB
+file = '../data/pretrade.20230118.14.45.mund.csv.gz' #551 MB
 
-
+# TODO überprüfen, price-low = 0?
+#---------------------------------
+# isin: US88160R1014 idx: 1599 max_activity: 5919
+# 14:30 (870, 721, 0, 721, 0, 0.5, 0.0, 125.53, 125.57, 0.0, 124.92, 192, 126.2, -126.81, 34, 47, 110)
 
 
 #TODO Python verbraucht nach 'read_gz' 2,8 GB RAM
@@ -334,18 +387,24 @@ print('saved_data:', saved_data)
 
 #DEV - Debug, Daten zusammenfassen, open, close, high, low, Spread (min, max)?
 idx = 0
+max_activity = 0
+max_idx = 0
 for data in arr:
     if len(data) > 0:
-        print(idx, isin_dict_idx[idx], 'anz:', len(data[0]))
+        #print(idx, isin_dict_idx[idx], 'anz:', len(data[0]), data[1])
+        if data[1][0] > max_activity:
+            max_activity = data[1][0]
+            max_idx = idx
     
     idx += 1
 
-#19 DE0005140008 anz: 62
-for data in arr[19][0]:
+print('isin:', isin_dict_idx[max_idx], 'idx:', max_idx, 'max_activity:', max_activity)
+
+for data in arr[max_idx][0]:
     print (timestamp_to_strtime(data[0]), data)
 
 
-
+print('data len:', len(arr), 'size:', get_sizeof_info(arr))
 
 
 #save_isin_dict(isin_dict)
