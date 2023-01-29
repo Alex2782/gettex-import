@@ -154,8 +154,33 @@ def load_isin_dict(path = None):
 
     return isin_dict, isin_dict_idx
 
+
 # ------------------------------------------------------------------------------------
-# read_gz
+# pretrade_debug
+# ------------------------------------------------------------------------------------
+def pretrade_debug(path, debug_isin, debug_time):
+
+    print('pretrade_debug:', path, debug_isin, debug_time)
+
+    total = abs(sum(1 for _ in gzip.open(path, 'rb')) / 2)
+
+    with gzip.open(path, 'rb') as f:
+
+        for line in tqdm(f, total=total, unit='lines'):
+
+            data = str(line).replace("b'", "").replace("\\n'", '')
+            tmp = data.split(',')
+
+            isin, tm, currency, bid, bid_size, ask, ask_size, spread, price = cast_data(tmp)
+
+            if debug_isin == isin and debug_time == timestamp_to_strtime(tm):
+                print (tmp[1], ', bid:', bid, ', bid_size:', bid_size, ' ask:', ask, ' ask_size:', ask_size, ', spread:', spread, ', price:', price)
+
+            line = f.readline()
+
+
+# ------------------------------------------------------------------------------------
+# cast_data
 # ------------------------------------------------------------------------------------
 def cast_data(arr):
     isin = arr[0]
@@ -169,8 +194,9 @@ def cast_data(arr):
     ask_size = int(arr[6]) #ask_size
 
     spread = round(ask - bid, 3)
+    price = round(bid + spread / 2, 3)
 
-    return isin, tm, currency, bid, bid_size, ask, ask_size, spread
+    return isin, tm, currency, bid, bid_size, ask, ask_size, spread, price
 
 # ------------------------------------------------------------------------------------
 # read_gz
@@ -198,10 +224,7 @@ def read_gz(path, isin_dict):
             data = str(line).replace("b'", "").replace("\\n'", '')
             tmp = data.split(',')
 
-            isin, tm, currency, bid, bid_size, ask, ask_size, spread = cast_data(tmp)
-
-            price = round(bid + spread / 2, 3)
-
+            isin, tm, currency, bid, bid_size, ask, ask_size, spread, price = cast_data(tmp)
 
             isin_obj = isin_dict.get(isin)
             if isin_obj is None: 
@@ -224,7 +247,8 @@ def read_gz(path, isin_dict):
             #idx 11 = activity, count data
             #idx 12, 13 = volatility long, short
             #idx 14, 15, 16 = volatility activity long, short, equal (no changes)
-            data = [tm,  bid_size,bid_size,  ask_size,ask_size,  spread,spread,  price,price,price,price,  1,  0,0,  0,0,0] 
+            #idx 17 = no trade counter (bid, ask and size = 0)
+            data = [tm,  bid_size,bid_size,  ask_size,ask_size,  spread,spread,  price,price,price,price,  1,  0,0,  0,0,0, 0] 
 
             bNewData = True
             len_data = len(ret_data[isin_idx][0])
@@ -243,30 +267,38 @@ def read_gz(path, isin_dict):
                     if data[3] > last_data[3]: last_data[3] = data[3]
                     if data[4] < last_data[4]: last_data[4] = data[4]
 
-                    #spread, idx: 5 = max, idx: 6 = min
-                    if data[5] > last_data[5]: last_data[5] = data[5]
-                    if data[6] < last_data[6]: last_data[6] = data[6]
-                    
-                    #price: high(8), low(9), close(10)  -> hint: open(7) already initialized
-                    if data[8] > last_data[8]: last_data[8] = data[8]
-                    if data[9] < last_data[9]: last_data[9] = data[9]
+                    trade = True
+                    if bid == 0 and ask == 0 and bid_size == 0 and ask_size == 0: trade = False  
 
-                    volatility = data[10] - last_data[10]
-                    last_data[10] = data[10]
-                    
-                    #activity
-                    last_data[11] += 1
 
-                    #idx 12, 13 = volatility long, short
-                    #idx 14, 15, 16 = volatility activity long, short, equal (no changes)
-                    if volatility > 0: 
-                        last_data[12] = round(last_data[12] + volatility, 3)
-                        last_data[14] += 1 
-                    elif volatility < 0: 
-                        last_data[13] = round(last_data[13] + volatility, 3)
-                        last_data[15] += 1
+                    if trade:
+                        #spread, idx: 5 = max, idx: 6 = min
+                        if data[5] > last_data[5]: last_data[5] = data[5]
+                        if data[6] < last_data[6]: last_data[6] = data[6]
+                        
+                        #price: high(8), low(9), close(10)  -> hint: open(7) already initialized
+                        if data[8] > last_data[8]: last_data[8] = data[8]
+                        if data[9] < last_data[9]: last_data[9] = data[9]
+
+                        volatility = data[10] - last_data[10]
+                        last_data[10] = data[10]
+                        
+                        #activity
+                        last_data[11] += 1
+
+                        #idx 12, 13 = volatility long, short
+                        #idx 14, 15, 16 = volatility activity long, short, equal (no changes)
+                        if volatility > 0: 
+                            last_data[12] = round(last_data[12] + volatility, 3)
+                            last_data[14] += 1 
+                        elif volatility < 0: 
+                            last_data[13] = round(last_data[13] + volatility, 3)
+                            last_data[15] += 1
+                        else:
+                            last_data[16] += 1
                     else:
-                        last_data[16] += 1
+                        #idx 17 = no trade counter (bid, ask and size = 0)
+                        last_data[17] += 1
 
             if bNewData:
                 ret_data[isin_idx][0].append(data) #row data
@@ -350,86 +382,32 @@ def load_npz(path):
 
 # =====================================================================================
 
-data_file = '../data.pickle.zip'
+
+
+
+#data_file = '../data.pickle.zip'
 
 #isin dictionary
-isin_dict, isin_dict_idx = load_isin_dict()
+#isin_dict, isin_dict_idx = load_isin_dict()
 
 
 file = '../data/pretrade.20230111.21.00.munc.csv.gz' #60 KB
 file = '../data/pretrade.20230111.21.00.mund.csv.gz' #207 MB
 #file = '../data/pretrade.20230112.11.00.mund.csv.gz' #240 MB
 #file = '../data/pretrade.20230112.10.45.mund.csv.gz' #293 MB
-file = '../data/pretrade.20230118.14.45.mund.csv.gz' #551 MB
-
-# TODO überprüfen, price-low = 0?
-#---------------------------------
-# isin: US88160R1014 idx: 1599 max_activity: 5919
-# 14:30 (870, 721, 0, 721, 0, 0.5, 0.0, 125.53, 125.57, 0.0, 124.92, 192, 126.2, -126.81, 34, 47, 110)
+#file = '../data/pretrade.20230118.14.45.mund.csv.gz' #551 MB
 
 
 #TODO Python verbraucht nach 'read_gz' 2,8 GB RAM
 #wenn die Wiederholungen entfernt werden, dann bei 1,34 GB
 #TODO auf 1 Sekunde oder 1 Minute zusammenfassen? berechnen: open, close, high, low, Spread (min, max)?
-isin_dict, arr = read_gz(file, isin_dict)
-
-count_row_data = 0
-saved_data = 0
-for data in arr:
-    if len(data) > 0:
-        count_row_data += len(data[0])
-        #print ('len row data:', len(data[0]), ', extra data:', data[1])
-        saved_data += data[1][0] - len(data[0])
-
-print('count_row_data:', count_row_data)
-print('saved_data:', saved_data)
+#isin_dict, arr = read_gz(file, isin_dict)
 
 
-#DEV - Debug, Daten zusammenfassen, open, close, high, low, Spread (min, max)?
-idx = 0
-max_activity = 0
-max_idx = 0
-for data in arr:
-    if len(data) > 0:
-        #print(idx, isin_dict_idx[idx], 'anz:', len(data[0]), data[1])
-        if data[1][0] > max_activity:
-            max_activity = data[1][0]
-            max_idx = idx
-    
-    idx += 1
+# DE0007236101 Siemens
+#isin_idx = isin_dict['DE0007236101']['id']
 
-print('isin:', isin_dict_idx[max_idx], 'idx:', max_idx, 'max_activity:', max_activity)
+#data = arr[isin_idx]
 
-for data in arr[max_idx][0]:
-    print (timestamp_to_strtime(data[0]), data)
-
-
-print('data len:', len(arr), 'size:', get_sizeof_info(arr))
-
-
-#save_isin_dict(isin_dict)
-
-#print('data len:', len(arr), 'size:', get_sizeof_info(arr))
-#save_as_pickle(data_file, arr)
-
-#data = load_from_pickle(data_file)
-#print('data len:', len(data), 'size:', get_sizeof_info(data))
-
-
-exit()
-
-
-np_data = load_npz(data_file)
-
-max_len = 0
-max_isin = ''
-for isin in np_data.keys():
-    if max_len < len(np_data[isin]):
-        max_len = len(np_data[isin])
-        max_isin = isin
-
-
-#print(np_data.get('CH1135202179'))
-print('MAX:', max_isin, ', len:', max_len)
-print('Siemens MAX:', isin, ', len:', len (np_data['DE0007236101']))
-print(np_data['DE0007236101'])
+#for d in data[0]:
+#    print(timestamp_to_strtime(d[0]), d)
