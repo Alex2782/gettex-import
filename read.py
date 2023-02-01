@@ -1,68 +1,6 @@
-import sys
-import os
 import gzip
-import zipfile
-import numpy as np
-import timeit
-import pickle
-from tqdm import tqdm
-import math
-
-# -------------------------------------------------
-# class DownloadProgressBar
-# -------------------------------------------------
-class DownloadProgressBar(tqdm):
-    def update_to(self, b=1, bsize=1, tsize=None):
-        if tsize is not None:
-            self.total = tsize
-        self.update(b * bsize - self.n)
-
-# ---------------------------------------------------------------------------------
-# strtime_to_timestamp: day timestamp in minutes
-# ---------------------------------------------------------------------------------
-def strtime_to_timestamp(str):
-
-    tmp = str.split('.')
-    time = tmp[0]
-
-    tmp = time.split(':')
-    h = int(tmp[0])
-    m = int(tmp[1])
-
-    timestamp = h * 60 + m
-
-    # TODO Performance überprüfen, Vorschlag von ChatGPT
-    # h, m = map(int, str.split(':')[:2])
-    # timestamp = h * 60 + m
-
-    return timestamp
-
-# ---------------------------------------------------------------------------------
-# timestamp_to_strtime: HH:MM
-# ---------------------------------------------------------------------------------
-def timestamp_to_strtime(tm):
-
-    h = math.floor(tm / 60)
-    tm -= h * 60
-    m = tm
-
-    return '{:02d}:{:02d}'.format(h, m)
-
-# ---------------------------------------------------------------------------------
-# get_file_sizeinfo
-# ---------------------------------------------------------------------------------
-def get_file_sizeinfo(path):
-    
-    if os.path.exists(path):
-        file_stats = os.stat(path)
-        return "%.4f MB" % (file_stats.st_size / 1024 / 1024)
-
-# ---------------------------------------------------------------------------------
-# get_sizeof_info
-# ---------------------------------------------------------------------------------
-def get_sizeof_info(obj):
-    return '%.4f MB' % (sys.getsizeof(obj) / 1024 / 1024)
-
+from utils import *
+from isin_groups import *
 
 # ---------------------------------------------------------------------------------
 # save_isin_dict: save isin dictionary as pickle file
@@ -83,39 +21,6 @@ def save_isin_dict(isin_dict, path = None):
     
     stop = timeit.default_timer()
     print('saved isin_dict in: %.2f s' % (stop - start)) 
-
-# ---------------------------------------------------------------------------------
-# save_as_pickle: save data as pickle file
-# ---------------------------------------------------------------------------------
-def save_as_pickle(path, data):
-
-    start = timeit.default_timer()
-
-    print('save_as_pickle:', path, 'data:', len(data)) 
-
-    with zipfile.ZipFile(path, 'w', compression=zipfile.ZIP_BZIP2, compresslevel=9) as f:
-        f.writestr("data.pickle", pickle.dumps(data))
-
-    stop = timeit.default_timer()
-    print('saved data in: %.2f s' % (stop - start), 'file size:', get_file_sizeinfo(path)) 
-
-# ---------------------------------------------------------------------------------
-# load_from_pickle: load data from a pickle file
-# ---------------------------------------------------------------------------------
-def load_from_pickle(path):
-
-    start = timeit.default_timer()
-
-    print('load_from_pickle:', path)
-
-    ret = []
-    with zipfile.ZipFile(path, "r") as zf:
-        ret = pickle.loads(zf.read("data.pickle"))
-
-    stop = timeit.default_timer()
-    print('loaded data in: %.2f s' % (stop - start)) 
-
-    return ret
 
 # ---------------------------------------------------------------------------------
 # load_isin_dict
@@ -198,14 +103,49 @@ def cast_data(arr):
 
     return isin, tm, currency, bid, bid_size, ask, ask_size, spread, price
 
-# ------------------------------------------------------------------------------------
-# read_gz
-# ------------------------------------------------------------------------------------
-def read_gz(path, isin_dict):
 
+# ------------------------------------------------------------------------------------
+# read_gz_posttrade 
+# ------------------------------------------------------------------------------------
+def read_gz_posttrade(path, isin_dict, pretrade_data):
+    #TODO
+    return 
+
+# ------------------------------------------------------------------------------------
+# read_gz_pretrade 
+# ------------------------------------------------------------------------------------
+def read_gz_pretrade(path, isin_dict, group = None):
+    """
+    ### Parameters:
+    - path: gettex pretrade file, gz format
+    - isin_dict: dictionary loaded from isin.pickle
+    - group: if is None, ignore all isin from global dictionary 'ISIN_GROUPS' (file: isin_groups.py)
+
+    ### Returns:
+    - dict: isin_dict
+    - list: ret_data
+    """
 
     print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-    print('read_gz:', path, ', file size:', get_file_sizeinfo(path))
+    print('read_gz:', path, ', file size:', get_file_sizeinfo(path), ', group:', group)
+
+
+    #TODO group richtig auswerten und ignore-Liste belegen wenn None
+    isin_group = []
+    ignore_isin = []
+
+    if group and 'ISIN_GROUPS' in globals() and group in ISIN_GROUPS.keys():
+        isin_group = ISIN_GROUPS.get(group)
+        print('isin_group:', isin_group)
+    elif group: 
+        group = None
+        print ('Hint: group was set to None') 
+
+    #generate ignore-list, append all isin if     
+    if not group and 'ISIN_GROUPS' in globals():
+        ignore_isin += [item for sublist in ISIN_GROUPS.values() for item in sublist]
+        print ('ignore_isin:', ignore_isin)
+
 
     start = timeit.default_timer()
 
@@ -342,72 +282,49 @@ def pretrade_convert_to_numpy(data):
 
     return np_arr
 
-# ------------------------------------------------------------------------------------
-# save_npz
-# ------------------------------------------------------------------------------------
-def save_npz(path, data):
+# ===========================================================================================
 
-    print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-    print('save_npz:', path)
 
-    start = timeit.default_timer()
-    np.savez_compressed(path, data=data)
-    #np.savez(path, **{name: data})
-    stop = timeit.default_timer()
+if __name__ == '__main__':
+
+    data_file = '../data.pickle.zip'
+
+    #isin dictionary
+    isin_dict, isin_dict_idx = load_isin_dict()
+
+    file = '../data/pretrade.20230111.21.00.munc.csv.gz' #60 KB
+    #file = '../data/pretrade.20230111.21.00.mund.csv.gz' #207 MB
+    #file = '../data/pretrade.20230112.11.00.mund.csv.gz' #240 MB
+    #file = '../data/pretrade.20230112.10.45.mund.csv.gz' #293 MB
+    #file = '../data/pretrade.20230118.14.45.mund.csv.gz' #551 MB
+
+    #file = '../data/pretrade.20230201.08.15.mund.csv.gz' #362 MB
+    #file_posttrade = '../data/posttrade.20230201.08.15.mund.csv.gz' #2.8 MB
     
-    print('savez_compressed in: %.2f s' % (stop - start), ', file size:', get_file_sizeinfo(path))  
-    print('----------------------------------------------------------')  
+
+    isin_dict, arr = read_gz_pretrade(file, isin_dict)
+
+    print('ISIN_GROUPS:', ISIN_GROUPS)
+    groups = [None] + list(ISIN_GROUPS.keys())
+    print('groups:', groups)
+
+    for grp in groups:
+        print('grp: ', grp) 
+
+        #TODO Python verbraucht nach 'read_gz' 2,8 GB RAM
+        #wenn die Wiederholungen entfernt werden, dann bei 1,34 GB
+        #TODO auf 1 Sekunde oder 1 Minute zusammenfassen? berechnen: open, close, high, low, Spread (min, max)?
+        #isin_dict, arr = read_gz_pretrade(file, isin_dict)
 
 
-# ------------------------------------------------------------------------------------
-# load_npz
-# ------------------------------------------------------------------------------------
-def load_npz(path):
-
-    print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-    print('load_npz:', path)
-
-    start = timeit.default_timer()
-    np_data = np.load(path, allow_pickle=True)
-
-    file = np_data.files[0]
-    print('np_data.files:', np_data.files)
-    #ret = np_data[np_data.files[0]].item()
-    ret = np_data[file]
-    stop = timeit.default_timer()
-
-    print('np.load + read [' + file + '] in: %.2f s' % (stop - start), ', sizeof:', get_sizeof_info(ret))  
-    print('----------------------------------------------------------')  
-    return ret
-
-# =====================================================================================
+    #TODO
+    #read_gz_posttrade(file_posttrade, isin_dict, arr)
 
 
+    # DE0007236101 Siemens
+    #isin_idx = isin_dict['DE0007236101']['id']
 
+    #data = arr[isin_idx]
 
-#data_file = '../data.pickle.zip'
-
-#isin dictionary
-#isin_dict, isin_dict_idx = load_isin_dict()
-
-
-file = '../data/pretrade.20230111.21.00.munc.csv.gz' #60 KB
-file = '../data/pretrade.20230111.21.00.mund.csv.gz' #207 MB
-#file = '../data/pretrade.20230112.11.00.mund.csv.gz' #240 MB
-#file = '../data/pretrade.20230112.10.45.mund.csv.gz' #293 MB
-#file = '../data/pretrade.20230118.14.45.mund.csv.gz' #551 MB
-
-
-#TODO Python verbraucht nach 'read_gz' 2,8 GB RAM
-#wenn die Wiederholungen entfernt werden, dann bei 1,34 GB
-#TODO auf 1 Sekunde oder 1 Minute zusammenfassen? berechnen: open, close, high, low, Spread (min, max)?
-#isin_dict, arr = read_gz(file, isin_dict)
-
-
-# DE0007236101 Siemens
-#isin_idx = isin_dict['DE0007236101']['id']
-
-#data = arr[isin_idx]
-
-#for d in data[0]:
-#    print(timestamp_to_strtime(d[0]), d)
+    #for d in data[0]:
+    #    print(timestamp_to_strtime(d[0]), d)
