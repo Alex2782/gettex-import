@@ -1,44 +1,9 @@
-import urllib.request
+from utils import *
 import re
 import os.path
 from datetime import datetime
-from tqdm import tqdm
 
 
-
-# -------------------------------------------------
-# class DownloadProgressBar
-# -------------------------------------------------
-class DownloadProgressBar(tqdm):
-    def update_to(self, b=1, bsize=1, tsize=None):
-        if tsize is not None:
-            self.total = tsize
-        self.update(b * bsize - self.n)
-
-# -------------------------------------------------
-# init_request: add header 'User-agent'
-# -------------------------------------------------
-def init_request():
-    opener = urllib.request.build_opener()
-    opener.addheaders = [('User-agent', 'Mozilla/5.0')]
-    urllib.request.install_opener(opener)
-
-# -------------------------------------------------
-# download_url
-# -------------------------------------------------
-def download_url(url, output_path):
-
-    with DownloadProgressBar(unit='B', unit_scale=True,
-                             miniters=1, desc=url.split('/')[-1]) as t:
-        urllib.request.urlretrieve(url, filename=output_path, reporthook=t.update_to)
-
-# -------------------------------------------------
-# get_html
-# -------------------------------------------------
-def get_html(url):
-    print ("get_html: " + url)
-    html = urllib.request.urlopen(url).read()
-    return str(html)
 
 # -------------------------------------------------
 # find_files

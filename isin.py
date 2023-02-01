@@ -1,4 +1,37 @@
+import time
+import random
 from read import load_isin_dict
+from utils import *
+
+
+def get_onvista_data(isin):
+
+    ret = onvista_search(isin, False, False, False)
+
+    instrument = ret['search']['instrument']
+    entityType = instrument.get('entityType')
+    entitySubType = instrument.get('entitySubType')
+
+    issuer_name = None
+    try:
+        issuer_name = ret.get('derivative_snapshot').get('derivativesIssuer').get('name')
+    except Exception as e:
+        print(f"Error: {str(e)}")
+
+    market_name = None
+    next_data = ret.get('__NEXT_DATA__')
+    if next_data:
+        
+        try:
+            market_name = next_data['props']['pageProps']['data']['snapshot']['quote']['market']['name']
+        except Exception as e:
+            print(f"Error: {str(e)}")
+
+    return entityType, entitySubType, issuer_name, market_name, ret
+
+# ==================================================================
+
+init_request()
 
 isin_dict, isin_dict_idx = load_isin_dict()
 
@@ -21,7 +54,7 @@ for isin in isin_dict:
         
         if obj: 
             obj['count'] += 1
-            if len(obj['isin']) < 10: obj['isin'].append(isin) 
+            if len(obj['isin']) < 5: obj['isin'].append(isin) 
         else: 
             isin_group[group] = {'count': 1, 'isin':[isin]}
 
@@ -31,10 +64,23 @@ for lang in lang_isin:
 
 
 for group in isin_group:
-    print ('group:', group, ', count:', isin_group[group]['count'], isin_group[group]['isin'])
+
+    print ('group:', group)
+    print ('+++++++++++++++++++++++++++++++')
+
+    if isin_group[group]['count'] > 10:
+        for isin in isin_group[group]['isin']:
+            time.sleep(random.uniform(1, 3))
+ 
+            entityType, entitySubType, issuer_name, market_name, ret = get_onvista_data(isin)
+            print(isin, ' = ', issuer_name, ' -> ', entityType, entitySubType) 
+
+    print ('count:', isin_group[group]['count'], isin_group[group]['isin'])
+    print ('-------------------------------')
 
 
-
+#entityType, entitySubType, issuer_name, market_name, ret = get_onvista_data('DE000GF6GHC1')
+#print (entityType, entitySubType, issuer_name)
 
 # Emittent
 # ======================================================================================================
