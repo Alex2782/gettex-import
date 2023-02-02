@@ -1,13 +1,36 @@
+from read import *
 
-import sys
-import os
-import gzip
-import numpy as np
-import timeit
-import pickle
-from tqdm import tqdm
-import math
+#isin dictionary
+isin_grp_dict = get_all_isin_groups()
 
+file = '../data.Goldman_Sachs.pickle.zip'
+arr = load_from_pickle(file)
+
+print(file, ', data len:', len(arr))
+
+
+
+#TODO genauer überprüfen, Zusammenfassung möglich?
+
+isin_idx = 0
+for isin_data in arr:
+    d = isin_data[0]
+    extra = isin_data[1]
+    
+    print('extra:', extra)
+    for trade in d:
+        print(timestamp_to_strtime(trade[0]), trade)
+
+    isin_idx += 1
+    break
+    print(isin, ', data len:', len(data))
+
+    if len(data) > 10:
+        break;
+
+
+
+exit()
 # Maximalen Wert aus der Spalte 'bid_size' ermitteln
 max_bid_size = np.amax(x['bid_size'])
 print("Maximaler Wert in bid_size:", max_bid_size)

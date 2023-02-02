@@ -3,19 +3,56 @@ from utils import *
 from isin_groups import *
 
 # ---------------------------------------------------------------------------------
+# get_isin_group_keys
+# ---------------------------------------------------------------------------------
+def get_isin_group_keys():
+    return [None] + list(ISIN_GROUPS.keys())
+
+
+# ---------------------------------------------------------------------------------
+# get_all_isin_groups
+# ---------------------------------------------------------------------------------
+def get_all_isin_groups():
+
+    groups = get_isin_group_keys()
+    ret = {}
+
+    for grp in groups:
+        isin_dict, isin_dict_idx = load_isin_dict(grp)
+        ret[grp] = {'isin_dict': isin_dict, 'isin_dict_idx': isin_dict_idx}
+
+    return ret
+
+# ---------------------------------------------------------------------------------
+# get_isin_path
+# ---------------------------------------------------------------------------------
+def get_isin_path(group = None):
+
+    path = './isin'
+    if not os.path.exists(path): os.makedirs(path)
+
+    filename = 'isin.pickle'
+    if group: filename = f'isin.{group}.pickle'
+
+    path += '/' + filename
+
+    return path
+
+# ---------------------------------------------------------------------------------
 # save_isin_dict: save isin dictionary as pickle file
 # ---------------------------------------------------------------------------------
-def save_isin_dict(isin_dict, path = None):
+def save_isin_dict(isin_dict, group = None):
 
-    global isin_size_start
+    global _ISIN_SIZE_START
+    if not '_ISIN_SIZE_START' in globals(): _ISIN_SIZE_START = {}
 
-    if path is None: path = './isin.pickle'
+    path = get_isin_path(group)
 
     start = timeit.default_timer()
 
-    print('isin_size_start: ', isin_size_start, ', new len:', len(isin_dict)) 
+    print('_ISIN_SIZE_START: ', _ISIN_SIZE_START.get(group), ', new len:', len(isin_dict)) 
 
-    if isin_size_start != len(isin_dict):
+    if _ISIN_SIZE_START.get(group) != len(isin_dict):
         with open(path, 'wb') as f:
             pickle.dump(isin_dict, f)
     
@@ -25,11 +62,13 @@ def save_isin_dict(isin_dict, path = None):
 # ---------------------------------------------------------------------------------
 # load_isin_dict
 # ---------------------------------------------------------------------------------
-def load_isin_dict(path = None):
+def load_isin_dict(group = None):
 
-    global isin_size_start
+    global _ISIN_SIZE_START
+    if not '_ISIN_SIZE_START' in globals(): _ISIN_SIZE_START = {}
 
-    if path is None: path = './isin.pickle'
+    path = get_isin_path(group)
+
     print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
     print('load_isin_dict:', path, ', file size:', get_file_sizeinfo(path))
 
@@ -41,10 +80,10 @@ def load_isin_dict(path = None):
         with open(path, 'rb') as f:
             isin_dict = pickle.load(f)
 
-    isin_size_start = len(isin_dict)
+    _ISIN_SIZE_START[group] = len(isin_dict)
 
     stop = timeit.default_timer()
-    print('loaded isin_dict in: %.2f s' % (stop - start), ', len:', isin_size_start, ', sizeof:', get_sizeof_info(isin_dict)) 
+    print('loaded isin_dict in: %.2f s' % (stop - start), ', len:', _ISIN_SIZE_START.get(group), ', sizeof:', get_sizeof_info(isin_dict)) 
 
 
     # isin_dict_idx
@@ -109,6 +148,10 @@ def cast_data(arr):
 # ------------------------------------------------------------------------------------
 def read_gz_posttrade(path, isin_dict, pretrade_data):
     #TODO
+    #pretrade_data vervollständigen, idx 18, 19
+
+    #idx 18, 19 = traded(for posttrade file): Volume, number of shares
+
     return 
 
 # ------------------------------------------------------------------------------------
@@ -129,8 +172,6 @@ def read_gz_pretrade(path, isin_dict, group = None):
     print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
     print('read_gz:', path, ', file size:', get_file_sizeinfo(path), ', group:', group)
 
-
-    #TODO group richtig auswerten und ignore-Liste belegen wenn None
     isin_group = []
     ignore_isin = []
 
@@ -144,8 +185,11 @@ def read_gz_pretrade(path, isin_dict, group = None):
     #generate ignore-list, append all isin if     
     if not group and 'ISIN_GROUPS' in globals():
         ignore_isin += [item for sublist in ISIN_GROUPS.values() for item in sublist]
-        print ('ignore_isin:', ignore_isin)
+        print ('ignore_isin - len:', len(ignore_isin))
 
+    check_ignore = False
+    ignore_counter = 0
+    if len(ignore_isin) > 0: check_ignore = True
 
     start = timeit.default_timer()
 
@@ -153,7 +197,7 @@ def read_gz_pretrade(path, isin_dict, group = None):
     for x in range(0, len(isin_dict)):
         ret_data.append([])
 
-    print('empty arrays, ret_data len: ', len(ret_data))
+    print('empty arrays - ret_data len: ', len(ret_data))
 
     total = abs(sum(1 for _ in gzip.open(path, 'rb')) / 2)
 
@@ -164,7 +208,24 @@ def read_gz_pretrade(path, isin_dict, group = None):
             data = str(line).replace("b'", "").replace("\\n'", '')
             tmp = data.split(',')
 
+            # continue / skip logic
+            # ++++++++++++++++++++++++++++++++++++++++++++
+            tmp_isin_grp = tmp[0][0:7] #idx 0 = isin
+            if check_ignore:
+                if tmp_isin_grp in ignore_isin:
+                    ignore_counter += 1
+                    line = f.readline()
+                    continue
+            else:
+                if tmp_isin_grp not in isin_group:
+                    ignore_counter += 1
+                    line = f.readline()
+                    continue                    
+            # --------------------------------------------
+
             isin, tm, currency, bid, bid_size, ask, ask_size, spread, price = cast_data(tmp)
+
+            
 
             isin_obj = isin_dict.get(isin)
             if isin_obj is None: 
@@ -188,7 +249,8 @@ def read_gz_pretrade(path, isin_dict, group = None):
             #idx 12, 13 = volatility long, short
             #idx 14, 15, 16 = volatility activity long, short, equal (no changes)
             #idx 17 = no trade counter (bid, ask and size = 0)
-            data = [tm,  bid_size,bid_size,  ask_size,ask_size,  spread,spread,  price,price,price,price,  1,  0,0,  0,0,0, 0] 
+            #idx 18, 19 = traded(for posttrade file): Volume, number of shares
+            data = [tm,  bid_size,bid_size,  ask_size,ask_size,  spread,spread,  price,price,price,price,  1,  0,0,  0,0,0, 0, 0,0] 
 
             bNewData = True
             len_data = len(ret_data[isin_idx][0])
@@ -254,6 +316,7 @@ def read_gz_pretrade(path, isin_dict, group = None):
     stop = timeit.default_timer()
 
     print('created ret_data in: %.2f s' % (stop - start), ', sizeof:', get_sizeof_info(ret_data) )
+    print('ignore_counter:', ignore_counter)
     print('----------------------------------------------------------')
 
     return isin_dict, ret_data
@@ -287,38 +350,46 @@ def pretrade_convert_to_numpy(data):
 
 if __name__ == '__main__':
 
-    data_file = '../data.pickle.zip'
-
     #isin dictionary
-    isin_dict, isin_dict_idx = load_isin_dict()
+    isin_grp_dict = get_all_isin_groups()
 
-    file = '../data/pretrade.20230111.21.00.munc.csv.gz' #60 KB
+    #file = '../data/pretrade.20230111.21.00.munc.csv.gz' #60 KB
     #file = '../data/pretrade.20230111.21.00.mund.csv.gz' #207 MB
     #file = '../data/pretrade.20230112.11.00.mund.csv.gz' #240 MB
     #file = '../data/pretrade.20230112.10.45.mund.csv.gz' #293 MB
-    #file = '../data/pretrade.20230118.14.45.mund.csv.gz' #551 MB
+    file = '../data/pretrade.20230118.14.45.mund.csv.gz' #551 MB
 
     #file = '../data/pretrade.20230201.08.15.mund.csv.gz' #362 MB
     #file_posttrade = '../data/posttrade.20230201.08.15.mund.csv.gz' #2.8 MB
     
 
-    isin_dict, arr = read_gz_pretrade(file, isin_dict)
-
+    #isin_dict, arr = read_gz_pretrade(file, isin_dict) #saved data in: 1.67 s file size: 1.4427 MB
+    #isin_dict, arr = read_gz_pretrade(file, isin_dict, 'HSBC') #saved data in: 3.15 s file size: 3.1542 MB
+    #isin_dict, arr = read_gz_pretrade(file, isin_dict, 'Goldman_Sachs') #saved data in: 9.41 s file size: 10.7039 MB
+    #isin_dict, arr = read_gz_pretrade(file, isin_dict, 'UniCredit') #saved data in: 2.86 s file size: 3.1331 MB
+    
     print('ISIN_GROUPS:', ISIN_GROUPS)
-    groups = [None] + list(ISIN_GROUPS.keys())
+    groups = get_isin_group_keys()
     print('groups:', groups)
 
     for grp in groups:
-        print('grp: ', grp) 
+        print('grp: ', str(grp)) 
 
-        #TODO Python verbraucht nach 'read_gz' 2,8 GB RAM
-        #wenn die Wiederholungen entfernt werden, dann bei 1,34 GB
-        #TODO auf 1 Sekunde oder 1 Minute zusammenfassen? berechnen: open, close, high, low, Spread (min, max)?
-        #isin_dict, arr = read_gz_pretrade(file, isin_dict)
+        isin_dict = isin_grp_dict[grp]['isin_dict']
+        isin_dict, arr = read_gz_pretrade(file, isin_dict, grp)
+
+        #TODO
+        #read_gz_posttrade(file_posttrade, isin_dict, arr)
+
+        data_file = '../data.pickle.zip'
+        if grp: data_file = f'../data.{grp}.pickle.zip'
+
+        save_as_pickle(data_file, arr)
+        save_isin_dict(isin_dict, grp)
+
+        #del arr
 
 
-    #TODO
-    #read_gz_posttrade(file_posttrade, isin_dict, arr)
 
 
     # DE0007236101 Siemens
