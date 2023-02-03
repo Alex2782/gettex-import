@@ -114,7 +114,7 @@ def strtime_to_timestamp(str):
 
     timestamp = h * 60 + m
 
-    # TODO Performance überprüfen, Vorschlag von ChatGPT
+    # TODO: Performance überprüfen, Vorschlag von ChatGPT
     # h, m = map(int, str.split(':')[:2])
     # timestamp = h * 60 + m
 

@@ -147,8 +147,7 @@ def cast_data(arr):
 # read_gz_posttrade 
 # ------------------------------------------------------------------------------------
 def read_gz_posttrade(path, isin_dict, pretrade_data):
-    #TODO
-    #pretrade_data vervollständigen, idx 18, 19
+    #TODO: pretrade_data vervollständigen, idx 18, 19
 
     #idx 18, 19 = traded(for posttrade file): Volume, number of shares
 
@@ -246,7 +245,7 @@ def read_gz_pretrade(path, isin_dict, group = None):
             #spread, idx: 5 = max, idx: 6 = min
             #price (idx 7 to 10): open, high, low, close
             #idx 11 = activity, count data
-            #idx 12, 13 = volatility long, short
+            #idx 12, 13 = volatility long, short #TODO: richtig auswerten Close kann mit nächsten Open abweichen, da auch Vola berechnen
             #idx 14, 15, 16 = volatility activity long, short, equal (no changes)
             #idx 17 = no trade counter (bid, ask and size = 0)
             #idx 18, 19 = traded(for posttrade file): Volume, number of shares
@@ -378,8 +377,7 @@ if __name__ == '__main__':
         isin_dict = isin_grp_dict[grp]['isin_dict']
         isin_dict, arr = read_gz_pretrade(file, isin_dict, grp)
 
-        #TODO
-        #read_gz_posttrade(file_posttrade, isin_dict, arr)
+        #TODO: read_gz_posttrade(file_posttrade, isin_dict, arr)
 
         data_file = '../data.pickle.zip'
         if grp: data_file = f'../data.{grp}.pickle.zip'

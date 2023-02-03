@@ -63,7 +63,7 @@ for url in files:
 
 
 
-# TODO main data
+# TODO: main data
 # https://mein.finanzen-zero.net/assets/searchdata/downloadable-instruments.csv
 
 
