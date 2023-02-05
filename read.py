@@ -131,14 +131,18 @@ def cast_data(arr):
     tm = strtime_to_timestamp(arr[1])
     currency = arr[2]
 
-    #cast to int and float, idx = 0 (timestamp) is already int
+    # cast to int and float, idx = 0 (timestamp) is already int
     bid = float(arr[3]) #bid
     bid_size = int(arr[4]) #bid_size
     ask = float(arr[5]) #ask
     ask_size = int(arr[6]) #ask_size
 
-    spread = round(ask - bid, 3)
-    price = round(bid + spread / 2, 3)
+    if bid > 0 and ask > 0:
+        spread = round(ask - bid, 3)
+        price = round(bid + spread / 2, 3)
+    else: # 'bid' or 'ask' can be 0 values
+        spread = 0
+        price = ask + bid # shortener for price = ask or price = bid
 
     return isin, tm, currency, bid, bid_size, ask, ask_size, spread, price
 
@@ -152,6 +156,47 @@ def read_gz_posttrade(path, isin_dict, pretrade_data):
     #idx 18, 19 = traded(for posttrade file): Volume, number of shares
 
     return 
+
+# ------------------------------------------------------------------------------------
+# trade_list_to_dict: convert list data to dictionary 
+# ------------------------------------------------------------------------------------
+def trade_list_to_dict(trade_list):
+    #idx 0 = timestamp in minutes of the day
+    #idx 1, 2 = bid_size: max, min
+    #idx 3, 4 = ask_size: max, min
+    #idx 5, 6 = spread: max, min
+    #idx 7, 8, 9, 10 = price: open, high, low, close
+    #idx 11 = activity: count data
+    #idx 12, 13 = volatility: long, short
+    #idx 14, 15, 16 = volatility activity: long, short, equal (no changes)
+    #idx 17, 18 = no values counter: bid, ask  (price or size = 0)
+    #idx 19, 20 = traded(for posttrade file): Volume, number of shares
+
+
+    ret = {}
+    ret['timestamp'] = trade_list[0]
+    ret['bid_size_max'] = trade_list[1]
+    ret['bid_size_min'] = trade_list[2]
+    ret['ask_size_max'] = trade_list[3]
+    ret['ask_size_min'] = trade_list[4]
+    ret['spread_max'] = trade_list[5]
+    ret['spread_min'] = trade_list[6]
+    ret['price_open'] = trade_list[7]
+    ret['price_high'] = trade_list[8]
+    ret['price_low'] = trade_list[9]
+    ret['price_close'] = trade_list[10]
+    ret['activity'] = trade_list[11]
+    ret['volatility_long'] = trade_list[12]
+    ret['volatility_short'] = trade_list[13]
+    ret['volatility_activity_long'] = trade_list[14]
+    ret['volatility_activity_short'] = trade_list[15]
+    ret['volatility_activity_equal'] = trade_list[16]
+    ret['no_value_counter_bid'] = trade_list[17]
+    ret['no_value_counter_ask'] = trade_list[18]
+    ret['traded_volume'] = trade_list[19]
+    ret['traded_number_of_shares'] = trade_list[20]
+
+    return ret
 
 # ------------------------------------------------------------------------------------
 # read_gz_pretrade 
@@ -224,8 +269,6 @@ def read_gz_pretrade(path, isin_dict, group = None):
 
             isin, tm, currency, bid, bid_size, ask, ask_size, spread, price = cast_data(tmp)
 
-            
-
             isin_obj = isin_dict.get(isin)
             if isin_obj is None: 
                 ret_data.append([])
@@ -234,28 +277,56 @@ def read_gz_pretrade(path, isin_dict, group = None):
             else:
                 isin_idx = isin_dict[isin]['id']
 
+            #DEV-TEST
+            #if isin_idx == 169944:
+            #    print(line) 
 
-            len_data = len(ret_data[isin_idx])
-            if len_data == 0: #no data, init sub-arrays
-                ret_data[isin_idx].append([]) #sub-array #0 is for row data
-                ret_data[isin_idx].append([0, 0, 0, 0, 0]) #sub-array #1 is for extra data, [counter, ?, ? ,? ,?]
 
-            #init bid_size, idx:1 = max, idx:2 = min
-            #init ask_size, idx:3 = max, idx:4 = min
-            #spread, idx: 5 = max, idx: 6 = min
-            #price (idx 7 to 10): open, high, low, close
-            #idx 11 = activity, count data
-            #idx 12, 13 = volatility long, short #TODO: richtig auswerten Close kann mit nächsten Open abweichen, da auch Vola berechnen
-            #idx 14, 15, 16 = volatility activity long, short, equal (no changes)
-            #idx 17 = no trade counter (bid, ask and size = 0)
-            #idx 18, 19 = traded(for posttrade file): Volume, number of shares
-            data = [tm,  bid_size,bid_size,  ask_size,ask_size,  spread,spread,  price,price,price,price,  1,  0,0,  0,0,0, 0, 0,0] 
 
+            #idx 0 = timestamp in minutes of the day
+            #idx 1, 2 = bid_size: max, min
+            #idx 3, 4 = ask_size: max, min
+            #idx 5, 6 = spread: max, min
+            #idx 7, 8, 9, 10 = price: open, high, low, close
+            #idx 11 = activity: count data
+            #idx 12, 13 = volatility: long, short
+            #idx 14, 15, 16 = volatility activity: long, short, equal (no changes)
+            #idx 17, 18 = no values counter: bid, ask  (price or size = 0)
+            #idx 19, 20 = traded(for posttrade file): Volume, number of shares
+            data = [tm,  bid_size,bid_size,  ask_size,ask_size,  spread,spread,  price,price,price,price,  1,  0,0,  0,0,0, 0,0, 0,0] 
+
+            trade = True
             bNewData = True
-            len_data = len(ret_data[isin_idx][0])
+            len_data = 0
+
+            if bid == 0 and ask == 0 and bid_size == 0 and ask_size == 0: 
+                trade = False  
+                bNewData = False
+
+
+            if trade:
+
+                len_data = len(ret_data[isin_idx])
+                if len_data == 0: #no data, init sub-arrays
+                    ret_data[isin_idx].append([]) #sub-array #0 is for row data
+                    ret_data[isin_idx].append([0, 0, 0, 0, 0]) #sub-array #1 is for extra data, [counter, ?, ? ,? ,?]
+
+                ret_data[isin_idx][1][0] += 1 #counter
+                len_data = len(ret_data[isin_idx][0])
+
+            #DEBUG-Test
+            #if isin == 'DE000GZ1CLT3':
+            #    print('counter:', ret_data[isin_idx][1][0]) 
+
+            
+            
+
             #print ('isin_idx:',isin_idx, 'data:', ret_data[isin_idx][0])
             if len_data > 0:
                 last_data = ret_data[isin_idx][0][len_data - 1]
+
+                if bid == 0 or bid_size == 0: last_data[17] += 1
+                if ask == 0 or ask_size == 0: last_data[18] += 1
 
                 if last_data[0] == tm:
                     bNewData = False
@@ -267,10 +338,6 @@ def read_gz_pretrade(path, isin_dict, group = None):
                     #ask_size, idx:3 = max, idx:4 = min
                     if data[3] > last_data[3]: last_data[3] = data[3]
                     if data[4] < last_data[4]: last_data[4] = data[4]
-
-                    trade = True
-                    if bid == 0 and ask == 0 and bid_size == 0 and ask_size == 0: trade = False  
-
 
                     if trade:
                         #spread, idx: 5 = max, idx: 6 = min
@@ -297,18 +364,13 @@ def read_gz_pretrade(path, isin_dict, group = None):
                             last_data[15] += 1
                         else:
                             last_data[16] += 1
-                    else:
-                        #idx 17 = no trade counter (bid, ask and size = 0)
-                        last_data[17] += 1
 
-            if bNewData:
+            if bNewData and trade:
                 ret_data[isin_idx][0].append(data) #row data
                 
                 #convert to tuple
                 if len_data > 1:
                     ret_data[isin_idx][0][len_data-2] = tuple(ret_data[isin_idx][0][len_data-2])
-
-            ret_data[isin_idx][1][0] += 1 #counter
 
             line = f.readline()
 
@@ -373,6 +435,9 @@ if __name__ == '__main__':
 
     for grp in groups:
         print('grp: ', str(grp)) 
+
+        #DEV-TEST
+        if grp != 'Goldman_Sachs': continue
 
         isin_dict = isin_grp_dict[grp]['isin_dict']
         isin_dict, arr = read_gz_pretrade(file, isin_dict, grp)

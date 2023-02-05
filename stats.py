@@ -18,14 +18,41 @@ isin_dict_idx = isin_grp_dict['Goldman_Sachs']['isin_dict_idx']
 isin_idx = 0
 max_vola_long = 0
 max_vola_short = 0
+isin_idx_max_vola_long = 0
+isin_idx_max_vola_short = 0
 
 for isin_data in arr:
-    d = isin_data[0]
-    extra = isin_data[1]
 
-    print('isin:', isin_dict_idx[isin_idx])    
-    print('extra:', extra)
+    if len(isin_data) == 0: 
+        isin_idx += 1
+        continue
 
+    try:
+        d = isin_data[0]
+        extra = isin_data[1]
+
+        #skip price > 3 EURO 
+        trade_dict = trade_list_to_dict(d[0])
+        if trade_dict['price_open'] > 3: 
+            isin_idx += 1
+            continue
+
+    except Exception as e:
+        print(e, isin_data, 'isin_idx: ', isin_idx)
+        isin_idx += 1
+        continue
+
+
+    #if isin_idx != 37135:
+    #    isin_idx += 1
+    #    continue
+
+    #print('isin:', isin_dict_idx[isin_idx], isin_idx)    
+    #print('extra:', extra)
+
+
+    sum_long = 0
+    sum_short = 0
     sum_vola_long = 0
     sum_vola_short = 0
     sum_vola_open_close_long = 0
@@ -33,7 +60,8 @@ for isin_data in arr:
 
     prev_trade = False
     for trade in d:
-        print(timestamp_to_strtime(trade[0]), trade)
+
+        #print(timestamp_to_strtime(trade[0]), trade)
         sum_vola_long += trade[12]
         sum_vola_short += trade[13]
 
@@ -47,30 +75,61 @@ for isin_data in arr:
 
         prev_trade = trade
     
-    print('----------------------------------------------')
+    #print('----------------------------------------------')
     sum_vola_long = round(sum_vola_long, 3)
     sum_vola_short = round(sum_vola_short, 3)
     sum_vola_open_close_long = round(sum_vola_open_close_long, 3)
     sum_vola_open_close_short = round(sum_vola_open_close_short, 3)
-    
-    print('sum_vola long / short:', sum_vola_long,  sum_vola_short)
-    print('sum_vola_open_close long / short:', sum_vola_open_close_long, sum_vola_open_close_short)
+
+    #print('sum_vola long / short           :', sum_vola_long,  sum_vola_short)
+    #print('sum_vola_open_close long / short:', sum_vola_open_close_long, sum_vola_open_close_short)
 
     sum_long = round(sum_vola_open_close_long + sum_vola_long, 3)
-    print('sum_long:', sum_long)
+    #print('sum_long:', sum_long)
 
     sum_short = round(sum_vola_open_close_short + sum_vola_short, 3)
-    print('sum_short:', sum_short)
+    #print('sum_short:', sum_short)
 
     sum = round(sum_vola_open_close_long + sum_vola_long + sum_vola_open_close_short + sum_vola_short, 3)
-    print('sum:', sum)
+    #print('sum:', sum)
+
+    if sum_long > max_vola_long:
+        #print ('sum_long > max_vola_long', sum_long, max_vola_long, ', isin_idx:', isin_idx)
+        max_vola_long = sum_long
+        isin_idx_max_vola_long = isin_idx
+
+    if sum_short < max_vola_short:
+        #print ('sum_short < max_vola_short', sum_short, max_vola_short, ', isin_idx:', isin_idx)
+        max_vola_short = sum_short
+        isin_idx_max_vola_short = isin_idx
 
     isin_idx += 1
 
-    if isin_idx > 2: break
+    #if isin_idx > 10: break
     
 
+print('-----------------------------------------------------------------------')
+print ('MAX_LONG:', max_vola_long)
+print('isin:', isin_dict_idx[isin_idx_max_vola_long], 'isin_idx:', isin_idx_max_vola_long)    
+print('extra:', arr[isin_idx_max_vola_long][1])
+print ('=======================')
+d = arr[isin_idx_max_vola_long][0]
 
+for trade in d:
+    print(timestamp_to_strtime(trade[0]), trade)
+
+print('------------------------')
+
+print ('MAX_SHORT:', max_vola_short)
+print('isin:', isin_dict_idx[isin_idx_max_vola_short], 'isin_idx:', isin_idx_max_vola_short)    
+print('extra:', arr[isin_idx_max_vola_short][1])
+print ('=======================')
+d = arr[isin_idx_max_vola_short][0]
+
+for trade in d:
+    print(timestamp_to_strtime(trade[0]), trade)
+
+print('------------------------')
 
 
 exit()
