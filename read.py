@@ -308,10 +308,18 @@ def read_gz_pretrade(path, isin_dict, group = None):
 
                 len_data = len(ret_data[isin_idx])
                 if len_data == 0: #no data, init sub-arrays
-                    ret_data[isin_idx].append([]) #sub-array #0 is for row data
-                    ret_data[isin_idx].append([0, 0, 0, 0, 0]) #sub-array #1 is for extra data, [counter, ?, ? ,? ,?]
 
+                    #sub-array #0 is for row data
+                    ret_data[isin_idx].append([]) 
+                    #sub-array #1 is for extra data and summary, [counter, open, high, low, close]
+                    ret_data[isin_idx].append([0, price,price,price,price]) 
+
+                #extra data / summary
                 ret_data[isin_idx][1][0] += 1 #counter
+                if price > ret_data[isin_idx][1][2]: ret_data[isin_idx][1][2] = price #high
+                if price < ret_data[isin_idx][1][3]: ret_data[isin_idx][1][3] = price #low
+                ret_data[isin_idx][1][4] = price #close
+
                 len_data = len(ret_data[isin_idx][0])
 
             #DEBUG-Test
