@@ -243,6 +243,21 @@ def init_ret_data(isin_dict):
     return ret_data
 
 # ------------------------------------------------------------------------------------
+# isin_skip: continue / skip logic for 'read_gz_posttrade' and 'read_gz_pretrade' functions 
+# ------------------------------------------------------------------------------------
+def isin_skip(tmp_isin_grp, check_ignore, isin_group, ignore_isin):
+    skip = False
+
+    if check_ignore:
+        if tmp_isin_grp in ignore_isin:
+            skip = True
+    else:
+        if tmp_isin_grp not in isin_group:
+            skip = True                    
+
+    return skip
+
+# ------------------------------------------------------------------------------------
 # read_gz_posttrade 
 # ------------------------------------------------------------------------------------
 def read_gz_posttrade(path, isin_dict, group = None, pretrade_data = []):
@@ -256,7 +271,8 @@ def read_gz_posttrade(path, isin_dict, group = None, pretrade_data = []):
     ignore_counter = 0
     no_amount_counter = 0
 
-    posttrade_list = []
+    if len(pretrade_data) == 0:
+        pretrade_data = init_ret_data(isin_dict)
 
     total = None #sum(1 for _ in gzip.open(path, 'rb'))
 
@@ -267,34 +283,46 @@ def read_gz_posttrade(path, isin_dict, group = None, pretrade_data = []):
             data = str(line).replace("b'", "").replace("\\n'", '')
             tmp = data.split(',')
 
-            # continue / skip logic
-            # ++++++++++++++++++++++++++++++++++++++++++++
-            tmp_isin_grp = tmp[0][0:7] #idx 0 = isin
-            if check_ignore:
-                if tmp_isin_grp in ignore_isin:
-                    ignore_counter += 1
-                    continue
-            else:
-                if tmp_isin_grp not in isin_group:
-                    ignore_counter += 1
-                    continue                    
-            # --------------------------------------------
+            if isin_skip(tmp[0][0:7], check_ignore, isin_group, ignore_isin):
+                ignore_counter += 1
+                continue
 
             isin, tm, currency, price, amount = cast_data_posttrade(tmp)
-
             if amount == 0: no_amount_counter +=1
 
+            isin_obj = isin_dict.get(isin)
+            if isin_obj is None: 
+                pretrade_data.append([])
+                isin_idx = len(pretrade_data) - 1
+                isin_dict[isin] = {'id': isin_idx, 'c': currency}
+            else:
+                isin_idx = isin_dict[isin]['id']
+
             #DEV-Test
-            if isin == 'US5949181045':
-                print(isin, timestamp_to_strtime(tm), price, amount)
+            #if isin == 'US5949181045':
+            #    print(isin, timestamp_to_strtime(tm), price, amount)
 
-            posttrade_list.append(tmp)
+            len_data = len(pretrade_data[isin_idx])
 
+             #no data, init sub-arrays
+            if len_data == 0:
+                #sub-array #0 is for pretrade row data
+                pretrade_data[isin_idx].append([]) 
+                #sub-array #1 is for extra data and summary, [counter, open, high, low, close]
+                pretrade_data[isin_idx].append([0, 0, 0, 0, 0])
+                #new len 
+                len_data = len(pretrade_data[isin_idx])
 
-    print('posttrade_list len:', len(posttrade_list), ', no_amount_counter:', no_amount_counter)
+            if len_data == 2:
+                #sub-array #2 is for posttrade row data
+                pretrade_data[isin_idx].append([]) 
+
+            pretrade_data[isin_idx][2].append((tm, price, amount))
+
+    print('pretrade_data len:', len(pretrade_data), ', no_amount_counter:', no_amount_counter)
     print('----------------------------------------------------------')
 
-    return posttrade_list
+    return isin_dict, pretrade_data
 
 # ------------------------------------------------------------------------------------
 # read_gz_pretrade 
@@ -328,18 +356,9 @@ def read_gz_pretrade(path, isin_dict, group = None):
             data = str(line).replace("b'", "").replace("\\n'", '')
             tmp = data.split(',')
 
-            # continue / skip logic
-            # ++++++++++++++++++++++++++++++++++++++++++++
-            tmp_isin_grp = tmp[0][0:7] #idx 0 = isin
-            if check_ignore:
-                if tmp_isin_grp in ignore_isin:
-                    ignore_counter += 1
-                    continue
-            else:
-                if tmp_isin_grp not in isin_group:
-                    ignore_counter += 1
-                    continue                    
-            # --------------------------------------------
+            if isin_skip(tmp[0][0:7], check_ignore, isin_group, ignore_isin):
+                ignore_counter += 1
+                continue
 
             isin, tm, currency, bid, bid_size, ask, ask_size, spread, price = cast_data_pretrade(tmp)
 
@@ -520,20 +539,24 @@ if __name__ == '__main__':
 
         #DEV-TEST
         #if grp != 'Goldman_Sachs': continue
-        if grp != None: continue
+        #if grp != None: continue
 
         isin_dict = isin_grp_dict[grp]['isin_dict']
-        #isin_dict, arr = read_gz_pretrade(file, isin_dict, grp)
-
-        #arr = load_from_pickle(data_file)
-        arr = []
-        read_gz_posttrade(file_posttrade, isin_dict, grp, arr)
+        isin_dict_idx = isin_grp_dict[grp]['isin_dict_idx']
+        isin_dict, arr = read_gz_pretrade(file, isin_dict, grp)
 
         data_file = '../data.pickle.zip'
         if grp: data_file = f'../data.{grp}.pickle.zip'
 
-        #save_as_pickle(data_file, arr)
-        #save_isin_dict(isin_dict, grp)
+        #arr = load_from_pickle(data_file)
+        #arr = []
+        isin_dict, arr = read_gz_posttrade(file_posttrade, isin_dict, grp, arr)
+
+        #print('isin:', isin_dict_idx[7554], arr[7554][1], 'pretrade len:', len(arr[7554][0]), ', posttrade len:', len(arr[7554][2]))
+        #print(arr[7554][2])
+
+        save_as_pickle(data_file, arr)
+        save_isin_dict(isin_dict, grp)
 
         #free RAM (garbage collector) 
         del arr
