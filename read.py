@@ -106,27 +106,41 @@ def pretrade_debug(path, debug_isin, debug_time):
 
     print('pretrade_debug:', path, debug_isin, debug_time)
 
-    total = abs(sum(1 for _ in gzip.open(path, 'rb')) / 2)
+    total = None #sum(1 for _ in gzip.open(path, 'rb'))
 
     with gzip.open(path, 'rb') as f:
 
-        for line in tqdm(f, total=total, unit='lines'):
+        for line in tqdm(f, total=total, unit='k'):
 
             data = str(line).replace("b'", "").replace("\\n'", '')
             tmp = data.split(',')
 
-            isin, tm, currency, bid, bid_size, ask, ask_size, spread, price = cast_data(tmp)
+            isin, tm, currency, bid, bid_size, ask, ask_size, spread, price = cast_data_pretrade(tmp)
 
             if debug_isin == isin and debug_time == timestamp_to_strtime(tm):
                 print (tmp[1], ', bid:', bid, ', bid_size:', bid_size, ' ask:', ask, ' ask_size:', ask_size, ', spread:', spread, ', price:', price)
 
-            line = f.readline()
+            #line = f.readline()
 
 
 # ------------------------------------------------------------------------------------
-# cast_data
+# cast_data_posttrade
 # ------------------------------------------------------------------------------------
-def cast_data(arr):
+def cast_data_posttrade(arr):
+    isin = arr[0]
+    tm = strtime_to_timestamp(arr[1])
+    currency = arr[2]
+
+    price = float(arr[3])
+    amount = int(arr[4])
+
+    return isin, tm, currency, price, amount
+
+
+# ------------------------------------------------------------------------------------
+# cast_data_pretrade
+# ------------------------------------------------------------------------------------
+def cast_data_pretrade(arr):
     isin = arr[0]
     tm = strtime_to_timestamp(arr[1])
     currency = arr[2]
@@ -147,15 +161,7 @@ def cast_data(arr):
     return isin, tm, currency, bid, bid_size, ask, ask_size, spread, price
 
 
-# ------------------------------------------------------------------------------------
-# read_gz_posttrade 
-# ------------------------------------------------------------------------------------
-def read_gz_posttrade(path, isin_dict, pretrade_data):
-    #TODO: pretrade_data vervollständigen, idx 18, 19
 
-    #idx 18, 19 = traded(for posttrade file): Volume, number of shares
-
-    return 
 
 # ------------------------------------------------------------------------------------
 # trade_list_to_dict: convert list data to dictionary 
@@ -198,23 +204,11 @@ def trade_list_to_dict(trade_list):
 
     return ret
 
-# ------------------------------------------------------------------------------------
-# read_gz_pretrade 
-# ------------------------------------------------------------------------------------
-def read_gz_pretrade(path, isin_dict, group = None):
-    """
-    ### Parameters:
-    - path: gettex pretrade file, gz format
-    - isin_dict: dictionary loaded from isin.pickle
-    - group: if is None, ignore all isin from global dictionary 'ISIN_GROUPS' (file: isin_groups.py)
 
-    ### Returns:
-    - dict: isin_dict
-    - list: ret_data
-    """
-
-    print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-    print('read_gz:', path, ', file size:', get_file_sizeinfo(path), ', group:', group)
+# ------------------------------------------------------------------------------------
+# get_isin_groups_and_ignore_list 
+# ------------------------------------------------------------------------------------
+def get_isin_groups_and_ignore_list(group):
 
     isin_group = []
     ignore_isin = []
@@ -232,22 +226,45 @@ def read_gz_pretrade(path, isin_dict, group = None):
         print ('ignore_isin - len:', len(ignore_isin))
 
     check_ignore = False
-    ignore_counter = 0
     if len(ignore_isin) > 0: check_ignore = True
 
-    start = timeit.default_timer()
+    return isin_group, ignore_isin, check_ignore
 
+
+# ------------------------------------------------------------------------------------
+# init_ret_data 
+# ------------------------------------------------------------------------------------
+def init_ret_data(isin_dict):
     ret_data = []
     for x in range(0, len(isin_dict)):
         ret_data.append([])
 
-    print('empty arrays - ret_data len: ', len(ret_data))
+    print('empty list - ret_data len: ', len(ret_data))
 
-    total = abs(sum(1 for _ in gzip.open(path, 'rb')) / 2)
+    return ret_data
+
+# ------------------------------------------------------------------------------------
+# read_gz_posttrade 
+# ------------------------------------------------------------------------------------
+def read_gz_posttrade(path, isin_dict, group = None, pretrade_data = []):
+
+    print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+    print('read_gz_pretrade:', path, ', file size:', get_file_sizeinfo(path), ', group:', group)
+
+    #idx 18, 19 = traded(for posttrade file): Volume, number of shares
+
+    isin_group, ignore_isin, check_ignore = get_isin_groups_and_ignore_list(group)
+    ignore_counter = 0
+    no_amount_counter = 0
+
+    posttrade_list = []
+
+    total = None #sum(1 for _ in gzip.open(path, 'rb'))
 
     with gzip.open(path, 'rb') as f:
 
-        for line in tqdm(f, total=total, unit='lines'):
+        for line in tqdm(f, total=total, unit='k'):
+            print('START line:', line)
 
             data = str(line).replace("b'", "").replace("\\n'", '')
             tmp = data.split(',')
@@ -258,16 +275,81 @@ def read_gz_pretrade(path, isin_dict, group = None):
             if check_ignore:
                 if tmp_isin_grp in ignore_isin:
                     ignore_counter += 1
-                    line = f.readline()
+                    #line = f.readline()
                     continue
             else:
                 if tmp_isin_grp not in isin_group:
                     ignore_counter += 1
-                    line = f.readline()
+                    #line = f.readline()
                     continue                    
             # --------------------------------------------
 
-            isin, tm, currency, bid, bid_size, ask, ask_size, spread, price = cast_data(tmp)
+            isin, tm, currency, price, amount = cast_data_posttrade(tmp)
+
+            if amount == 0: no_amount_counter +=1
+
+            #DEV-Test
+            if isin == 'DE000GZ3F8B1' and False:
+                print(isin, timestamp_to_strtime(tm), price, amount)
+
+            posttrade_list.append(tmp)
+
+            #line = f.readline()
+            print('END line:', line)
+
+    print('posttrade_list len:', len(posttrade_list), ', no_amount_counter:', no_amount_counter)
+    print('----------------------------------------------------------')
+
+    return posttrade_list
+
+# ------------------------------------------------------------------------------------
+# read_gz_pretrade 
+# ------------------------------------------------------------------------------------
+def read_gz_pretrade(path, isin_dict, group = None):
+    """
+    ### Parameters:
+    - path: gettex pretrade file, gz format
+    - isin_dict: dictionary loaded from isin.pickle
+    - group: if is None, ignore all isin from global dictionary 'ISIN_GROUPS' (file: isin_groups.py)
+
+    ### Returns:
+    - dict: isin_dict
+    - list: ret_data
+    """
+
+    print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+    print('read_gz_pretrade:', path, ', file size:', get_file_sizeinfo(path), ', group:', group)
+
+    isin_group, ignore_isin, check_ignore = get_isin_groups_and_ignore_list(group)
+    ignore_counter = 0
+    start = timeit.default_timer()
+    ret_data = init_ret_data(isin_dict)
+
+    total = None #sum(1 for _ in gzip.open(path, 'rb'))
+
+    with gzip.open(path, 'rb') as f:
+
+        for line in tqdm(f, total=total, unit=' lines', unit_scale=True):
+
+            data = str(line).replace("b'", "").replace("\\n'", '')
+            tmp = data.split(',')
+
+            # continue / skip logic
+            # ++++++++++++++++++++++++++++++++++++++++++++
+            tmp_isin_grp = tmp[0][0:7] #idx 0 = isin
+            if check_ignore:
+                if tmp_isin_grp in ignore_isin:
+                    ignore_counter += 1
+                    #line = f.readline()
+                    continue
+            else:
+                if tmp_isin_grp not in isin_group:
+                    ignore_counter += 1
+                    #line = f.readline()
+                    continue                    
+            # --------------------------------------------
+
+            isin, tm, currency, bid, bid_size, ask, ask_size, spread, price = cast_data_pretrade(tmp)
 
             isin_obj = isin_dict.get(isin)
             if isin_obj is None: 
@@ -380,7 +462,7 @@ def read_gz_pretrade(path, isin_dict, group = None):
                 if len_data > 1:
                     ret_data[isin_idx][0][len_data-2] = tuple(ret_data[isin_idx][0][len_data-2])
 
-            line = f.readline()
+            #line = f.readline()
 
     stop = timeit.default_timer()
 
@@ -426,10 +508,10 @@ if __name__ == '__main__':
     #file = '../data/pretrade.20230111.21.00.mund.csv.gz' #207 MB
     #file = '../data/pretrade.20230112.11.00.mund.csv.gz' #240 MB
     #file = '../data/pretrade.20230112.10.45.mund.csv.gz' #293 MB
-    file = '../data/pretrade.20230118.14.45.mund.csv.gz' #551 MB
+    #file = '../data/pretrade.20230118.14.45.mund.csv.gz' #551 MB
 
-    #file = '../data/pretrade.20230201.08.15.mund.csv.gz' #362 MB
-    #file_posttrade = '../data/posttrade.20230201.08.15.mund.csv.gz' #2.8 MB
+    file = '../data/pretrade.20230201.08.15.mund.csv.gz' #362 MB
+    file_posttrade = '../data/posttrade.20230201.08.15.mund.csv.gz' #2.8 MB
     
 
     #isin_dict, arr = read_gz_pretrade(file, isin_dict) #saved data in: 1.67 s file size: 1.4427 MB
@@ -445,12 +527,14 @@ if __name__ == '__main__':
         print('grp: ', str(grp)) 
 
         #DEV-TEST
-        if grp != 'Goldman_Sachs': continue
+        #if grp != 'Goldman_Sachs': continue
 
         isin_dict = isin_grp_dict[grp]['isin_dict']
         isin_dict, arr = read_gz_pretrade(file, isin_dict, grp)
 
-        #TODO: read_gz_posttrade(file_posttrade, isin_dict, arr)
+        #arr = load_from_pickle(data_file)
+        #arr = []
+        #read_gz_posttrade(file_posttrade, isin_dict, grp, arr)
 
         data_file = '../data.pickle.zip'
         if grp: data_file = f'../data.{grp}.pickle.zip'
@@ -458,7 +542,8 @@ if __name__ == '__main__':
         save_as_pickle(data_file, arr)
         save_isin_dict(isin_dict, grp)
 
-        #del arr
+        #free RAM (garbage collector) 
+        del arr
 
 
 
