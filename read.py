@@ -120,7 +120,6 @@ def pretrade_debug(path, debug_isin, debug_time):
             if debug_isin == isin and debug_time == timestamp_to_strtime(tm):
                 print (tmp[1], ', bid:', bid, ', bid_size:', bid_size, ' ask:', ask, ' ask_size:', ask_size, ', spread:', spread, ', price:', price)
 
-            #line = f.readline()
 
 
 # ------------------------------------------------------------------------------------
@@ -264,8 +263,7 @@ def read_gz_posttrade(path, isin_dict, group = None, pretrade_data = []):
     with gzip.open(path, 'rb') as f:
 
         for line in tqdm(f, total=total, unit=' lines', unit_scale=True):
-            print('START line:', line)
-
+ 
             data = str(line).replace("b'", "").replace("\\n'", '')
             tmp = data.split(',')
 
@@ -275,12 +273,10 @@ def read_gz_posttrade(path, isin_dict, group = None, pretrade_data = []):
             if check_ignore:
                 if tmp_isin_grp in ignore_isin:
                     ignore_counter += 1
-                    #line = f.readline()
                     continue
             else:
                 if tmp_isin_grp not in isin_group:
                     ignore_counter += 1
-                    #line = f.readline()
                     continue                    
             # --------------------------------------------
 
@@ -289,13 +285,11 @@ def read_gz_posttrade(path, isin_dict, group = None, pretrade_data = []):
             if amount == 0: no_amount_counter +=1
 
             #DEV-Test
-            if isin == 'DE000GZ3F8B1' and False:
+            if isin == 'US5949181045':
                 print(isin, timestamp_to_strtime(tm), price, amount)
 
             posttrade_list.append(tmp)
 
-            #line = f.readline()
-            print('END line:', line)
 
     print('posttrade_list len:', len(posttrade_list), ', no_amount_counter:', no_amount_counter)
     print('----------------------------------------------------------')
@@ -340,12 +334,10 @@ def read_gz_pretrade(path, isin_dict, group = None):
             if check_ignore:
                 if tmp_isin_grp in ignore_isin:
                     ignore_counter += 1
-                    #line = f.readline()
                     continue
             else:
                 if tmp_isin_grp not in isin_group:
                     ignore_counter += 1
-                    #line = f.readline()
                     continue                    
             # --------------------------------------------
 
@@ -461,8 +453,8 @@ def read_gz_pretrade(path, isin_dict, group = None):
                 #convert to tuple
                 if len_data > 1:
                     ret_data[isin_idx][0][len_data-2] = tuple(ret_data[isin_idx][0][len_data-2])
-
-            #line = f.readline()
+        
+        #END for
 
     stop = timeit.default_timer()
 
@@ -528,19 +520,20 @@ if __name__ == '__main__':
 
         #DEV-TEST
         #if grp != 'Goldman_Sachs': continue
+        if grp != None: continue
 
         isin_dict = isin_grp_dict[grp]['isin_dict']
-        isin_dict, arr = read_gz_pretrade(file, isin_dict, grp)
+        #isin_dict, arr = read_gz_pretrade(file, isin_dict, grp)
 
         #arr = load_from_pickle(data_file)
-        #arr = []
-        #read_gz_posttrade(file_posttrade, isin_dict, grp, arr)
+        arr = []
+        read_gz_posttrade(file_posttrade, isin_dict, grp, arr)
 
         data_file = '../data.pickle.zip'
         if grp: data_file = f'../data.{grp}.pickle.zip'
 
-        save_as_pickle(data_file, arr)
-        save_isin_dict(isin_dict, grp)
+        #save_as_pickle(data_file, arr)
+        #save_isin_dict(isin_dict, grp)
 
         #free RAM (garbage collector) 
         del arr
