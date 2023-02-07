@@ -110,7 +110,7 @@ def pretrade_debug(path, debug_isin, debug_time):
 
     with gzip.open(path, 'rb') as f:
 
-        for line in tqdm(f, total=total, unit='k'):
+        for line in tqdm(f, total=total, unit=' lines', unit_scale=True):
 
             data = str(line).replace("b'", "").replace("\\n'", '')
             tmp = data.split(',')
@@ -263,7 +263,7 @@ def read_gz_posttrade(path, isin_dict, group = None, pretrade_data = []):
 
     with gzip.open(path, 'rb') as f:
 
-        for line in tqdm(f, total=total, unit='k'):
+        for line in tqdm(f, total=total, unit=' lines', unit_scale=True):
             print('START line:', line)
 
             data = str(line).replace("b'", "").replace("\\n'", '')
