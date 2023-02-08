@@ -175,8 +175,6 @@ def trade_list_to_dict(trade_list):
     #idx 12, 13 = volatility: long, short
     #idx 14, 15, 16 = volatility activity: long, short, equal (no changes)
     #idx 17, 18 = no values counter: bid, ask  (price or size = 0)
-    #idx 19, 20 = traded(for posttrade file): Volume, number of shares
-
 
     ret = {}
     ret['timestamp'] = trade_list[0]
@@ -198,8 +196,6 @@ def trade_list_to_dict(trade_list):
     ret['volatility_activity_equal'] = trade_list[16]
     ret['no_value_counter_bid'] = trade_list[17]
     ret['no_value_counter_ask'] = trade_list[18]
-    ret['traded_volume'] = trade_list[19]
-    ret['traded_number_of_shares'] = trade_list[20]
 
     return ret
 
@@ -263,9 +259,7 @@ def isin_skip(tmp_isin_grp, check_ignore, isin_group, ignore_isin):
 def read_gz_posttrade(path, isin_dict, group = None, pretrade_data = []):
 
     print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-    print('read_gz_pretrade:', path, ', file size:', get_file_sizeinfo(path), ', group:', group)
-
-    #idx 18, 19 = traded(for posttrade file): Volume, number of shares
+    print('read_gz_posttrade:', path, ', file size:', get_file_sizeinfo(path), ', group:', group)
 
     isin_group, ignore_isin, check_ignore = get_isin_groups_and_ignore_list(group)
     ignore_counter = 0
@@ -274,7 +268,7 @@ def read_gz_posttrade(path, isin_dict, group = None, pretrade_data = []):
     if len(pretrade_data) == 0:
         pretrade_data = init_ret_data(isin_dict)
 
-    total = None #sum(1 for _ in gzip.open(path, 'rb'))
+    total = None
 
     with gzip.open(path, 'rb') as f:
 
@@ -347,7 +341,7 @@ def read_gz_pretrade(path, isin_dict, group = None):
     start = timeit.default_timer()
     ret_data = init_ret_data(isin_dict)
 
-    total = None #sum(1 for _ in gzip.open(path, 'rb'))
+    total = None
 
     with gzip.open(path, 'rb') as f:
 
@@ -370,12 +364,6 @@ def read_gz_pretrade(path, isin_dict, group = None):
             else:
                 isin_idx = isin_dict[isin]['id']
 
-            #DEV-TEST
-            #if isin_idx == 169944:
-            #    print(line) 
-
-
-
             #idx 0 = timestamp in minutes of the day
             #idx 1, 2 = bid_size: max, min
             #idx 3, 4 = ask_size: max, min
@@ -385,8 +373,7 @@ def read_gz_pretrade(path, isin_dict, group = None):
             #idx 12, 13 = volatility: long, short
             #idx 14, 15, 16 = volatility activity: long, short, equal (no changes)
             #idx 17, 18 = no values counter: bid, ask  (price or size = 0)
-            #idx 19, 20 = traded(for posttrade file): Volume, number of shares
-            data = [tm,  bid_size,bid_size,  ask_size,ask_size,  spread,spread,  price,price,price,price,  1,  0,0,  0,0,0, 0,0, 0,0] 
+            data = [tm,  bid_size,bid_size,  ask_size,ask_size,  spread,spread,  price,price,price,price,  1,  0,0,  0,0,0, 0,0] 
 
             trade = True
             bNewData = True
@@ -415,14 +402,6 @@ def read_gz_pretrade(path, isin_dict, group = None):
 
                 len_data = len(ret_data[isin_idx][0])
 
-            #DEBUG-Test
-            #if isin == 'DE000GZ1CLT3':
-            #    print('counter:', ret_data[isin_idx][1][0]) 
-
-            
-            
-
-            #print ('isin_idx:',isin_idx, 'data:', ret_data[isin_idx][0])
             if len_data > 0:
                 last_data = ret_data[isin_idx][0][len_data - 1]
 
@@ -551,9 +530,6 @@ if __name__ == '__main__':
         #arr = load_from_pickle(data_file)
         #arr = []
         isin_dict, arr = read_gz_posttrade(file_posttrade, isin_dict, grp, arr)
-
-        #print('isin:', isin_dict_idx[7554], arr[7554][1], 'pretrade len:', len(arr[7554][0]), ', posttrade len:', len(arr[7554][2]))
-        #print(arr[7554][2])
 
         save_as_pickle(data_file, arr)
         save_isin_dict(isin_dict, grp)

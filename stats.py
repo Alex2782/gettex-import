@@ -4,7 +4,7 @@ from read import *
 # ------------------------------------------------------------------------------------
 # analyze_activity
 # ------------------------------------------------------------------------------------
-def analyze_activity(file, group, min_count = 1, max_count = 9999, max_vola = 9999):
+def analyze_activity(file, group, min_count = 1, max_count = 9999, max_vola = 9999, min_post_trade = 0, max_post_trade = 9999, min_post_trade_amount = 0):
 
     #isin dictionary
     isin_grp_dict = get_all_isin_groups()
@@ -25,8 +25,18 @@ def analyze_activity(file, group, min_count = 1, max_count = 9999, max_vola = 99
             continue
 
         try:
-            d = isin_data[0]
+            pre_trade = isin_data[0]
             extra = isin_data[1]
+
+            post_trade = []
+            if len(isin_data) > 2:
+                post_trade = isin_data[2]
+
+            
+            len_post_trade = len(post_trade)
+            for post in post_trade:
+                if post[2] < min_post_trade_amount:
+                    len_post_trade -= 1
 
             count = extra[0]
             open = extra[1]
@@ -40,6 +50,10 @@ def analyze_activity(file, group, min_count = 1, max_count = 9999, max_vola = 99
 
             #skip min_count / max_count
             if count > max_count or count < min_count: 
+                isin_idx += 1
+                continue
+            elif len_post_trade > max_post_trade or len_post_trade < min_post_trade: 
+
                 isin_idx += 1
                 continue
             elif vola < max_vola:
@@ -76,17 +90,24 @@ def show_row_data(file, group, isin):
     isin_idx = isin_dict[isin]['id']
 
     try:
-        d = arr[isin_idx][0]
+        pre_trade = arr[isin_idx][0]
         extra = arr[isin_idx][1]
+
+        post_trade = []
+        if len(arr[isin_idx]) > 2:
+            post_trade = arr[isin_idx][2]
+
     except Exception as e:
         print(e, arr[isin_idx], 'isin_idx: ', isin_idx)
 
     print('ISIN: ', isin)
     print('extra:', extra)
-    print('======================================')
-    for trade in d:
+    print('==================== PRETRADE =======================')
+    for trade in pre_trade:
         print(timestamp_to_strtime(trade[0]), trade)
-    print('======================================')
+    print('==================== POSTTRADE ======================')
+    for trade in post_trade:
+        print(timestamp_to_strtime(trade[0]), trade)
 
 # ------------------------------------------------------------------------------------
 # analyze_max_long_max_short
@@ -227,20 +248,27 @@ file = f'../data.{group}.pickle.zip'
 
 #analyze_max_long_max_short(file, group, 2)
 
-min_count = 10
-max_count = 9999
-max_vola = 0.01
-#analyze_activity(file, group, min_count, max_count, max_vola)
+min_count = 100
+max_count = 99999999
+max_vola = 9999999
+min_post_trade = 3
+max_post_trade = 10
+min_post_trade_amount = 1
+#analyze_activity(file, group, min_count, max_count, max_vola, min_post_trade, max_post_trade, min_post_trade_amount)
 
 
 # TEST Data
-#  'DE000GX6RGY2', 'DE000GZ0DMC7', 'DE000GX5JPY2', 'DE000GX49664', 'DE000GZ18TQ7', 
-# 'DE000GK0TF29', 'DE000GZ5YEQ9', 'DE000GX1V5B4', 'DE000GH7N0B2', 'DE000GK4HD54', 
-# 'DE000GH68AV0', 'DE000GX0W752', 'DE000GK4RVD5', 'DE000GK6J1L0', 'DE000GK3FAJ3', 
-# 'DE000GH8K6Q9', 'DE000GX8WWV1', 'DE000GZ6LPM9', 'DE000GK4X7U2', 'DE000GZ3MGN1', 
-# 'DE000GZ6J606', 'DE000GX4X9J4', 'DE000GK9URK1', 'DE000GZ0GRZ0', 'DE000GZ01CV9', 'DE000GK9FT20', 'DE000GZ6UK13', 
-# 'DE000GK5H7Q9', 'DE000GZ653V6', 'DE000GZ0QJ83', 'DE000GZ4FRM2', 'DE000GZ3UU89'
-isin = 'DE000GX5JPY2'
+#['DE000GZ4R4F6', 'DE000GZ3U3Z2', 'DE000GZ2ZFM9', 'DE000GZ6JJX3', 'DE000GX6ZCL1', 'DE000GX7WK72', 
+#'DE000GZ6K885', 'DE000GX7TMK3', 'DE000GZ6JLL4', 'DE000GZ620J0', 'DE000GZ6WRP5', 'DE000GZ6VH41', 
+#'DE000GZ6S5A1', 'DE000GZ381G5', 'DE000GZ3R2V8', 'DE000GZ6PS12', 'DE000GX66601', 'DE000GX9H6B2', 
+#'DE000GX9A353', 'DE000GH7GNM4', 'DE000GZ6YZE8', 'DE000GZ6KCP2', 'DE000GH6FMH0', 'DE000GZ6HA95', 
+#'DE000GX8KHA1', 'DE000GX7WMB6', 'DE000GZ7KSY8', 'DE000GZ7EB05', 'DE000GZ72WV8', 'DE000GZ7H293']    
+# 
+# ['DE000GZ6S5A1', 'DE000GZ6KCP2']    
+isin = 'DE000GZ6KCP2'
+show_row_data(file, group, isin)
+
+isin = 'DE000GZ6S5A1'
 show_row_data(file, group, isin)
 
 
