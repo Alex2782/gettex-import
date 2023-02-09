@@ -462,6 +462,18 @@ def read_gz_pretrade(path, isin_dict, group = None):
 
     return isin_dict, ret_data
 
+# ------------------------------------------------------------------------------------
+# list_gz_files
+# ------------------------------------------------------------------------------------
+def list_gz_files(path):
+    gz_files = []
+    files = os.listdir(path)
+    for name in files:
+
+        if name[-3:] == '.gz':
+            gz_files.append(name)
+    
+    return gz_files
 
 # ------------------------------------------------------------------------------------
 # pretrade_convert_to_numpy
@@ -486,6 +498,7 @@ def pretrade_convert_to_numpy(data):
 
     return np_arr
 
+
 # ===========================================================================================
 
 
@@ -503,6 +516,11 @@ if __name__ == '__main__':
     file = '../data/pretrade.20230201.08.15.mund.csv.gz' #362 MB
     file_posttrade = '../data/posttrade.20230201.08.15.mund.csv.gz' #2.8 MB
     
+
+    files = list_gz_files('../data')
+    print(files)
+
+    exit()
 
     #isin_dict, arr = read_gz_pretrade(file, isin_dict) #saved data in: 1.67 s file size: 1.4427 MB
     #isin_dict, arr = read_gz_pretrade(file, isin_dict, 'HSBC') #saved data in: 3.15 s file size: 3.1542 MB
