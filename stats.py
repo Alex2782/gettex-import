@@ -140,7 +140,7 @@ def analyze_max_long_max_short(file, group, max_open_price = 3):
             extra = isin_data[1]
 
             #skip price > 3 EURO 
-            trade_dict = trade_list_to_dict(d[0])
+            trade_dict = pretrade_list_to_dict(d[0])
             if trade_dict['price_open'] > max_open_price: 
                 isin_idx += 1
                 continue
@@ -243,38 +243,35 @@ def analyze_max_long_max_short(file, group, max_open_price = 3):
 
 
 #TODO: genauer überprüfen, Zusammenfassung möglich?
-group = 'Goldman_Sachs'
-file = f'../data.{group}.pickle.zip'
+#group = 'Goldman_Sachs'
+#file = f'../data.{group}.pickle.zip'
+
+group = None
+file = f'../data.pickle.zip'
 
 #analyze_max_long_max_short(file, group, 2)
 
 min_count = 100
 max_count = 99999999
 max_vola = 9999999
-min_post_trade = 3
-max_post_trade = 10
+min_post_trade = 30
+max_post_trade = 999
 min_post_trade_amount = 1
 #analyze_activity(file, group, min_count, max_count, max_vola, min_post_trade, max_post_trade, min_post_trade_amount)
 
 
 # TEST Data
-#['DE000GZ4R4F6', 'DE000GZ3U3Z2', 'DE000GZ2ZFM9', 'DE000GZ6JJX3', 'DE000GX6ZCL1', 'DE000GX7WK72', 
-#'DE000GZ6K885', 'DE000GX7TMK3', 'DE000GZ6JLL4', 'DE000GZ620J0', 'DE000GZ6WRP5', 'DE000GZ6VH41', 
-#'DE000GZ6S5A1', 'DE000GZ381G5', 'DE000GZ3R2V8', 'DE000GZ6PS12', 'DE000GX66601', 'DE000GX9H6B2', 
-#'DE000GX9A353', 'DE000GH7GNM4', 'DE000GZ6YZE8', 'DE000GZ6KCP2', 'DE000GH6FMH0', 'DE000GZ6HA95', 
-#'DE000GX8KHA1', 'DE000GX7WMB6', 'DE000GZ7KSY8', 'DE000GZ7EB05', 'DE000GZ72WV8', 'DE000GZ7H293']    
-# 
-# ['DE000GZ6S5A1', 'DE000GZ6KCP2']    
-isin = 'DE000GZ6KCP2'
+#['DE000PAG9113', 'DE0007100000', 'DE000A2GS401', 'DE000A255F11', 'DE000A2YN900', 'NO0010081235', 'DE0008402215']  
+isin = 'DE0008402215'
 show_row_data(file, group, isin)
 
 isin = 'DE000GZ6S5A1'
-show_row_data(file, group, isin)
+#show_row_data(file, group, isin)
 
 
-
-
-
+debug_gz = '../data/pretrade.20230201.08.15.mund.csv.gz'
+pretrade_debug(debug_gz, 'DE0008402215', '08:03')
+#pretrade_debug(debug_gz, 'DE000GZ6KCP2', '08:10')
 
 
 exit()

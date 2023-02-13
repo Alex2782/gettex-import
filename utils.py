@@ -105,12 +105,11 @@ def onvista_search(searchValue, website = False, snapshot = False, log = True):
 # ---------------------------------------------------------------------------------
 def strtime_to_timestamp(str):
 
-    tmp = str.split('.')
-    time = tmp[0]
+    tmp = str.split(':')
 
-    tmp = time.split(':')
     h = int(tmp[0])
     m = int(tmp[1])
+    seconds = float(tmp[2])
 
     timestamp = h * 60 + m
 
@@ -118,18 +117,23 @@ def strtime_to_timestamp(str):
     # h, m = map(int, str.split(':')[:2])
     # timestamp = h * 60 + m
 
-    return timestamp
+    return timestamp, seconds
 
 # ---------------------------------------------------------------------------------
 # timestamp_to_strtime: HH:MM
 # ---------------------------------------------------------------------------------
-def timestamp_to_strtime(tm):
+def timestamp_to_strtime(tm, seconds = False):
 
     h = math.floor(tm / 60)
     tm -= h * 60
     m = tm
 
-    return '{:02d}:{:02d}'.format(h, m)
+    if seconds == False:
+        str = '{:02d}:{:02d}'.format(h, m)
+    else:
+        str = '{:02d}:{:02d}:{:09.6f}'.format(h, m, seconds)
+
+    return str
 
 # ---------------------------------------------------------------------------------
 # get_file_sizeinfo
