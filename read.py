@@ -102,7 +102,7 @@ def load_isin_dict(group = None):
 # ------------------------------------------------------------------------------------
 # pretrade_debug
 # ------------------------------------------------------------------------------------
-def pretrade_debug(path, debug_isin, debug_time):
+def pretrade_debug(path, debug_isin, debug_time = None):
 
     print('pretrade_debug:', path, debug_isin, debug_time)
 
@@ -117,7 +117,7 @@ def pretrade_debug(path, debug_isin, debug_time):
 
             isin, tm, seconds, currency, bid, bid_size, ask, ask_size, spread, price = cast_data_pretrade(tmp)
 
-            if debug_isin == isin and debug_time == timestamp_to_strtime(tm):
+            if debug_isin == isin or (debug_time is not None and debug_time == timestamp_to_strtime(tm)):
                 print (tmp[1], ', bid:', bid, ', bid_size:', bid_size, ' ask:', ask, ' ask_size:', ask_size, ', spread:', spread, ', price:', price)
 
 
@@ -233,16 +233,16 @@ def get_isin_groups_and_ignore_list(group):
 
 
 # ------------------------------------------------------------------------------------
-# init_ret_data 
+# init_trade_data 
 # ------------------------------------------------------------------------------------
-def init_ret_data(isin_dict):
-    ret_data = []
+def init_trade_data(isin_dict):
+    trade_data = []
     for x in range(0, len(isin_dict)):
-        ret_data.append([])
+        trade_data.append([])
 
-    print('empty list - ret_data len: ', len(ret_data))
+    print('empty list - trade_data len: ', len(trade_data))
 
-    return ret_data
+    return trade_data
 
 # ------------------------------------------------------------------------------------
 # isin_skip: continue / skip logic for 'read_gz_posttrade' and 'read_gz_pretrade' functions 
@@ -272,7 +272,7 @@ def read_gz_posttrade(path, isin_dict, group = None, trade_data = []):
     no_amount_counter = 0
 
     if len(trade_data) == 0:
-        trade_data = init_ret_data(isin_dict)
+        trade_data = init_trade_data(isin_dict)
 
     total = None
 
@@ -317,7 +317,7 @@ def read_gz_posttrade(path, isin_dict, group = None, trade_data = []):
                 #sub-array #2 is for posttrade row data
                 trade_data[isin_idx].append([]) 
 
-            trade_data[isin_idx][2].append((tm, seconds, price, amount, 0)) #idx(5) -> 0 = unknown, 1 = bid, 2 = ask
+            trade_data[isin_idx][2].append([tm, seconds, price, amount, 0]) #idx(5) -> 0 = unknown, 1 = bid, 2 = ask
 
     print('pretrade_data len:', len(trade_data), ', no_amount_counter:', no_amount_counter)
     print('----------------------------------------------------------')
@@ -347,7 +347,7 @@ def read_gz_pretrade(path, isin_dict, group = None, trade_data = []):
     start = timeit.default_timer()
 
     if len(trade_data) == 0:
-        trade_data = init_ret_data(isin_dict)
+        trade_data = init_trade_data(isin_dict)
 
     total = None
 
@@ -402,10 +402,8 @@ def read_gz_pretrade(path, isin_dict, group = None, trade_data = []):
                     #sub-array #1 is for extra data and summary, [counter, open, high, low, close]
                     trade_data[isin_idx].append([0, price,price,price,price]) 
 
-                elif len_data == 3:
-                    #TODO mit posttrade abgleichen, posttrade bid und ask bestimmen 
-                    if isin == 'DE0008402215':
-                        print(tm, seconds, data)
+                elif len_data == 3: #init posttrade bid / ask
+                    init_posttrade_bid_ask(trade_data[isin_idx][2], tm, seconds, bid, ask)
 
                 #extra data / summary
                 trade_data[isin_idx][1][0] += 1 #counter
@@ -461,10 +459,6 @@ def read_gz_pretrade(path, isin_dict, group = None, trade_data = []):
             if bNewData and trade:
                 trade_data[isin_idx][0].append(data) #row data
                 
-                #convert to tuple
-                if len_data > 1:
-                    trade_data[isin_idx][0][len_data-2] = tuple(trade_data[isin_idx][0][len_data-2])
-        
         #END for
 
     stop = timeit.default_timer()
@@ -474,6 +468,117 @@ def read_gz_pretrade(path, isin_dict, group = None, trade_data = []):
     print('----------------------------------------------------------')
 
     return isin_dict, trade_data
+
+# ------------------------------------------------------------------------------------
+# summary_low_activity: 
+# - without posttrade and low volarity, summary to 15 minutes
+# - converting data, from list to tuple 
+# ------------------------------------------------------------------------------------
+def summary_low_activity(trade_data):
+
+    print('summary_low_activity:')
+
+    start = timeit.default_timer()
+
+    summarized = 0
+
+    for trade in trade_data:
+        pre = []
+        extra = []
+        post = []
+        data_len = len (trade)
+
+        if data_len > 0: pre = trade[0]
+        if data_len > 1: extra = trade[1]
+        if data_len > 2: post = trade[2]
+
+        vola = 0
+        if len(extra) > 0: vola = extra[2] - extra[3] # vola = high - low   
+
+        # summary to 15 minutes 
+        if len(post) == 0 and vola < 0.2 and len(pre) > 1:
+            last_data = []
+
+            summarized += len(pre)
+
+            for data in pre:
+                if len(last_data) == 0: 
+                    last_data = data[:] # copy values
+                    continue
+
+                #bid_size, idx:1 = max, idx:2 = min
+                if data[1] > last_data[1]: last_data[1] = data[1]
+                if data[2] < last_data[2]: last_data[2] = data[2]
+                
+                #ask_size, idx:3 = max, idx:4 = min
+                if data[3] > last_data[3]: last_data[3] = data[3]
+                if data[4] < last_data[4]: last_data[4] = data[4]
+
+                #spread, idx: 5 = max, idx: 6 = min
+                if data[5] > last_data[5]: last_data[5] = data[5]
+                if data[6] < last_data[6]: last_data[6] = data[6]
+                
+                #price: high(8), low(9), close(10)  -> hint: open(7) already initialized
+                if data[8] > last_data[8]: last_data[8] = data[8]
+                if data[9] < last_data[9]: last_data[9] = data[9]
+                last_data[10] = data[10]
+
+                last_data[11] += data[11] # activity
+                last_data[12] += data[12] # volatility_long
+                last_data[13] += data[13] # volatility_short
+                last_data[14] += data[14] # volatility_activity_long
+                last_data[15] += data[15] # volatility_activity_short
+                last_data[16] += data[16] # volatility_activity_equal
+                last_data[17] += data[17] # no_value_counter_bid
+                last_data[18] += data[18] # no_value_counter_ask
+
+            #END for
+            trade[0] = [last_data]
+
+
+
+        # converting to tuple
+        idx = 0
+        for data in pre:
+            pre[idx] = tuple(data)
+            idx += 1
+
+        idx = 0
+        for data in post:
+            post[idx] = tuple(data)
+            idx += 1
+
+    stop = timeit.default_timer()
+
+    print('created ret_data in: %.2f s' % (stop - start), ', sizeof:', get_sizeof_info(trade_data), 'summarized:', summarized)
+
+    return trade_data
+# ------------------------------------------------------------------------------------
+# init_posttrade_bid_ask
+# ------------------------------------------------------------------------------------
+def init_posttrade_bid_ask(posttrade_list, tm, seconds, bid, ask):
+    #print('init_posttrade_bid_ask:', posttrade_list)
+    #print('tm:', tm, 'seconds:', seconds, 'bid:', bid, 'ask:', ask)
+
+    for post in posttrade_list:
+        if post[4] > 0: continue #
+        if post[0] > tm and post[1] > seconds: break
+
+        time_diff = post[0] * 60 + post[1] - tm * 60 - seconds
+
+        #print(time_diff, post) 
+
+        if time_diff > -30.00 and time_diff <=0.1:
+            price = post[2]
+            abs_price_bid = abs(price - bid)
+            abs_price_ask = abs(price - ask)
+
+            if abs_price_bid < abs_price_ask: post[4] = 1 #bid
+            elif abs_price_bid > abs_price_ask: post[4] = 2 #ask
+  
+            #print("SET:", post)
+            #print('time_diff:',time_diff,'-->', 'tm:', tm, 'seconds:', seconds, 'bid:', bid, 'ask:', ask)
+
 
 # ------------------------------------------------------------------------------------
 # list_gz_files
@@ -551,24 +656,24 @@ if __name__ == '__main__':
 
         #DEV-TEST
         #if grp != 'Goldman_Sachs': continue
-        if grp != None: continue
+        #if grp != None: continue
 
         isin_dict = isin_grp_dict[grp]['isin_dict']
         isin_dict_idx = isin_grp_dict[grp]['isin_dict_idx']
 
         isin_dict, arr = read_gz_posttrade(file_posttrade, isin_dict, grp, arr)
         isin_dict, arr = read_gz_pretrade(file, isin_dict, grp, arr)
+        arr = summary_low_activity(arr)
 
         data_file = '../data.pickle.zip'
         if grp: data_file = f'../data.{grp}.pickle.zip'
-
-
 
         save_as_pickle(data_file, arr)
         save_isin_dict(isin_dict, grp)
 
         #free RAM (garbage collector) 
         del arr
+        arr = []
 
 
 

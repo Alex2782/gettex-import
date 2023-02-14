@@ -4,7 +4,8 @@ from read import *
 # ------------------------------------------------------------------------------------
 # analyze_activity
 # ------------------------------------------------------------------------------------
-def analyze_activity(file, group, min_count = 1, max_count = 9999, max_vola = 9999, min_post_trade = 0, max_post_trade = 9999, min_post_trade_amount = 0):
+def analyze_activity(file, group, min_count = 1, max_count = 9999, max_vola = 9999, 
+                    min_post_trade = 0, max_post_trade = 9999, min_post_trade_amount = 0, post_trade_type = None):
 
     #isin dictionary
     isin_grp_dict = get_all_isin_groups()
@@ -35,7 +36,11 @@ def analyze_activity(file, group, min_count = 1, max_count = 9999, max_vola = 99
             
             len_post_trade = len(post_trade)
             for post in post_trade:
-                if post[2] < min_post_trade_amount:
+                #amount
+                if post[3] < min_post_trade_amount:
+                    len_post_trade -= 1
+                #type
+                if post_trade_type is not None and post[4] != post_trade_type:
                     len_post_trade -= 1
 
             count = extra[0]
@@ -243,35 +248,37 @@ def analyze_max_long_max_short(file, group, max_open_price = 3):
 
 
 #TODO: genauer überprüfen, Zusammenfassung möglich?
-#group = 'Goldman_Sachs'
-#file = f'../data.{group}.pickle.zip'
+group = 'Goldman_Sachs'
+file = f'../data.{group}.pickle.zip'
 
-group = None
-file = f'../data.pickle.zip'
+#group = None
+#file = f'../data.pickle.zip'
 
 #analyze_max_long_max_short(file, group, 2)
 
-min_count = 100
-max_count = 99999999
-max_vola = 9999999
-min_post_trade = 30
-max_post_trade = 999
-min_post_trade_amount = 1
-#analyze_activity(file, group, min_count, max_count, max_vola, min_post_trade, max_post_trade, min_post_trade_amount)
+min_count = 10
+max_count = 99999
+max_vola = 0.1
+
+#min / max len
+min_post_trade = 0
+max_post_trade = 9999
+
+min_post_trade_amount = 0
+post_trade_type = None   # None = no filter, 0 = unknown, 1 = bid, 2 = ask
+#analyze_activity(file, group, min_count, max_count, max_vola, min_post_trade, max_post_trade, min_post_trade_amount, post_trade_type)
 
 
 # TEST Data
-#['DE000PAG9113', 'DE0007100000', 'DE000A2GS401', 'DE000A255F11', 'DE000A2YN900', 'NO0010081235', 'DE0008402215']  
-isin = 'DE0008402215'
+# 'DE000GZ7WCA7', 'DE000GZ7RK33', 'DE000GZ7AFM1', 'DE000GZ7TZP2', 'DE000GZ7NNG0', 
+# 'DE000GZ7PBP1', 'DE000GZ7RLM3', 'DE000GZ7WNE6', 'DE000GZ7P494', 'DE000GZ7PBS5', 'DE000GZ7U080', 'DE000GZ7LWP6']
+isin = 'DE000GZ7LWP6'
 show_row_data(file, group, isin)
-
-isin = 'DE000GZ6S5A1'
-#show_row_data(file, group, isin)
 
 
 debug_gz = '../data/pretrade.20230201.08.15.mund.csv.gz'
-pretrade_debug(debug_gz, 'DE0008402215', '08:03')
-#pretrade_debug(debug_gz, 'DE000GZ6KCP2', '08:10')
+time = None # '08:00'
+#pretrade_debug(debug_gz, isin, time)
 
 
 exit()
