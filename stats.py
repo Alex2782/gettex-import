@@ -251,12 +251,12 @@ def analyze_max_long_max_short(file, group, max_open_price = 3):
 group = 'Goldman_Sachs'
 file = f'../data.{group}.pickle.zip'
 
-#group = None
-#file = f'../data.pickle.zip'
+group = None
+file = f'../data.pickle.zip'
 
 #analyze_max_long_max_short(file, group, 2)
 
-min_count = 10
+min_count = 100
 max_count = 99999
 max_vola = 0.1
 
@@ -270,9 +270,8 @@ post_trade_type = None   # None = no filter, 0 = unknown, 1 = bid, 2 = ask
 
 
 # TEST Data
-# 'DE000GZ7WCA7', 'DE000GZ7RK33', 'DE000GZ7AFM1', 'DE000GZ7TZP2', 'DE000GZ7NNG0', 
-# 'DE000GZ7PBP1', 'DE000GZ7RLM3', 'DE000GZ7WNE6', 'DE000GZ7P494', 'DE000GZ7PBS5', 'DE000GZ7U080', 'DE000GZ7LWP6']
-isin = 'DE000GZ7LWP6'
+# 'JP3885780001', 'AU000000AVL6', 'AU000000AAC9', 'US822582BE14', 'XS2448001813', 'FR0014007LK5', 'CA89612W1023'
+isin = 'FR0014007LK5'
 show_row_data(file, group, isin)
 
 
