@@ -1,5 +1,5 @@
 from read import *
-
+from open_html import *
 
 # ------------------------------------------------------------------------------------
 # analyze_activity
@@ -77,15 +77,21 @@ def analyze_activity(file, group, min_count = 1, max_count = 9999, max_vola = 99
     print('=====================')
     print('isin_list len:', len(isin_list))
 
+    return isin_list
 
 
 # ------------------------------------------------------------------------------------
 # show_row_data
 # ------------------------------------------------------------------------------------
-def show_row_data(file, group, isin):
+def show_row_data(file, group, isin, out_path = None):
     #isin dictionary
-    isin_grp_dict = get_all_isin_groups()
-    arr = load_from_pickle(file)
+    global isin_grp_dict
+    global arr
+
+    if not 'isin_grp_dict' in globals(): isin_grp_dict = get_all_isin_groups()
+    if not 'arr' in globals(): arr = load_from_pickle(file)
+
+    file_out = ''
 
     print(file, ', data len:', len(arr))
 
@@ -106,7 +112,10 @@ def show_row_data(file, group, isin):
     except Exception as e:
         print(e, arr[isin_idx], 'isin_idx: ', isin_idx)
 
-    print('=' * 59, isin, '=' * 59)
+    # ==================== EXTRA DATA ======================
+
+    print('=' * 80, isin, '=' * 79)
+    file_out += '{} {} {}'.format('=' * 80, isin, '=' * 79) + "\n"
 
     e = extra_list_to_dict(extra)
     oc_diff = round(e['close'] - e['open'], 3)
@@ -124,11 +133,17 @@ def show_row_data(file, group, isin):
                 f"no-pre-ask      : {e['no-pre-ask']:> 9} \n" \
                 f"no-post         : {e['no-post']:> 9} \n" \
                 f"vola_profit     : {e['vola_profit']:> 9.3f} %\n" \
-                f"bid long/short  : {e['bid_long']:> 9.3f} % / {e['bid_short']:> .3f} %\n" \
-                f"ask long/short  : {e['ask_long']:> 9.3f} % / {e['ask_short']:> .3f} %\n" \
+                f"bid long/short  : {e['bid_long']:> 9.3f} / {e['bid_short']:> .3f} \n" \
+                f"ask long/short  : {e['ask_long']:> 9.3f} / {e['ask_short']:> .3f} \n" \
     
     print(extra_out)
-    print('=' * 60, ' PRETRADE ', '=' * 60)
+
+    # ==================== PRETRADE ======================
+
+    print('=' * 80, ' PRETRADE ', '=' * 80)
+    file_out += extra_out + "\n"
+    file_out += '{} {} {}'.format('=' * 80, ' PRETRADE ', '=' * 80) + "\n"
+
     vola_diff_sum = 0
     open_close_diff_sum = 0
     close_open_diff = 0 
@@ -137,12 +152,18 @@ def show_row_data(file, group, isin):
 
     # output ascii table
     str_format = "{:>9} | {:>12} | {:>12} | {:>12} | {:>12} | {:>12} | {:>9} | {:>12} | {:>16} | {:>9}"
-    print (str_format.format('timestamp', 'bid_size_max', 'ask_size_max', 'spread_max', 'price_open', 
-                             'price_high', 'activity', 'vol.long', 'vol.activity', 'vola-diff'))
+    out = str_format.format('timestamp', 'bid_size_max', 'ask_size_max', 'spread_max', 'price_open', 
+                             'price_high', 'activity', 'vol.long', 'vol.activity', 'vola-diff')
+    print (out)
+    file_out += out + "\n"
     
-    print (str_format.format('         ', 'bid_size_min', 'ask_size_min', 'spread_min', 'price_close', 
-                             'price_low', '        ', 'vol.short', 'long/short/equal', ''))
+    out = str_format.format('         ', 'bid_size_min', 'ask_size_min', 'spread_min', 'price_close', 
+                             'price_low', '        ', 'vol.short', 'long/short/equal', '')
+    print (out)
+    file_out += out + "\n"
     print ('-' * 160)
+    file_out += str('-' * 160) + "\n"
+
 
     for trade in pre_trade:
         vola_diff = round(trade[12] + trade[13], 3)
@@ -161,14 +182,42 @@ def show_row_data(file, group, isin):
         out = f"{tm_out:>9} | {td['bid_size_max']:>12} | {td['ask_size_max']:>12} | {td['spread_max']:>12.3f} | {td['price_open']:>12.3f} | " \
                     f"{td['price_high']:>12.3f} | {td['activity']:>9} | {td['volatility_long']:>12.3f} | {vol_activity:^16} | {vola_diff:>9.3f}"
         print (out)
+        file_out += out + "\n"
 
         out = f"{'':>9} | {td['bid_size_min']:>12} | {td['ask_size_min']:>12} | {td['spread_min']:>12.3f} | {td['price_close']:>12.3f} | " \
                     f"{td['price_low']:>12.3f} | {'':>9} | {td['volatility_short']:>12.3f} | {'':^16} | {'':>16}"
         print (out)
+        file_out += out + "\n"
     
     print('-' * 160)
-    print('vola_diff_sum: ', round(vola_diff_sum, 3), 'open_close_diff_sum: ', round(open_close_diff_sum, 3), 'close_open_diff:', round(close_open_diff, 3))
+    file_out += str('-' * 160) + "\n"
+
+    DIFF = round(vola_diff_sum + close_open_diff, 3)
+    out = f"vola_diff_sum       : {round(vola_diff_sum, 3):> 9.3f} \n" \
+          f"open_close_diff_sum : {round(open_close_diff_sum, 3):> 9.3f} \n" \
+          f"close_open_diff     : {round(close_open_diff, 3):> 9.3f} \n" \
+          f"DIFF                : {DIFF:> 9.3f} " \
+    
+    print(out)   
+    file_out += out + "\n"
+
+    if DIFF - oc_diff != 0: 
+        out = f"DIFF-ERROR:         : {DIFF-oc_diff:> 9.3f}"
+        print(out) 
+        file_out += out + "\n"
+
+    # ==================== POSTTRADE ======================
+
     print('=' * 60, ' POSTTRADE ', '=' * 59)
+    file_out += '{} {} {}'.format('=' * 60, ' POSTTRADE ', '=' * 59) + "\n"
+
+    str_format = "{:>15} | {:>9} | {:>9} | {:>9} "
+    out = str_format.format('timestamp', 'price', 'amount', 'type')
+    print (out)
+    file_out += out + "\n"
+
+    print('-' * 160)
+    file_out += str('-' * 160) + "\n"
 
     volume = 0
     bid_volume = 0
@@ -183,14 +232,33 @@ def show_row_data(file, group, isin):
         elif trade[4] == 2: ask_volume += trade[2] * trade[3]
 
         print(extra_out)
+        file_out += extra_out + "\n"
     
     print('-' * 160)
+    file_out += str('-' * 160) + "\n"
 
     bid_p = bid_volume / volume * 100
     ask_p = ask_volume / volume * 100
-    print(f"VOLUME     : {volume:>12.3f} {currency}")
-    print(f"BID VOLUME : {bid_volume:>12.3f} {currency} ({bid_p:.3f} %)")
-    print(f"ASK VOLUME : {ask_volume:>12.3f} {currency} ({ask_p:.3f} %)")
+
+    out = f"VOLUME     : {volume:>12.3f} {currency} \n" \
+          f"BID VOLUME : {bid_volume:>12.3f} {currency} ({bid_p:.3f} % \n" \
+          f"ASK VOLUME : {ask_volume:>12.3f} {currency} ({ask_p:.3f} %) \n"
+
+    print(out)
+    file_out += out
+
+    if out_path:
+        
+        style = ''
+        if not os.path.exists(out_path):
+            style = '<head><style>body{background-color: #222222; color: #888888}</style></head>'
+
+        f = open(out_path, 'a')    
+        if len(style) > 0: f.write(style)
+
+        f.write('<code>{}</code> <hr style="border: 2px solid #5555aa">'.format(file_out.replace('\n', '<br>').replace('  ', '&nbsp;&nbsp;')))
+        f.close()
+
 
 # ------------------------------------------------------------------------------------
 # analyze_max_long_max_short
@@ -334,9 +402,9 @@ file = f'../data.pickle.zip'
 
 #analyze_max_long_max_short(file, group, 2)
 
-min_count = 100
-max_count = 999
-max_vola = 999
+min_count = 1000
+max_count = 99999
+max_vola = 99999
 
 #min / max len
 min_post_trade = 1
@@ -344,14 +412,22 @@ max_post_trade = 9999
 
 min_post_trade_amount = 1
 post_trade_type = None   # None = no filter, 0 = unknown, 1 = bid, 2 = ask
-#analyze_activity(file, group, min_count, max_count, max_vola, min_post_trade, max_post_trade, min_post_trade_amount, post_trade_type)
+isin_list = analyze_activity(file, group, min_count, max_count, max_vola, min_post_trade, max_post_trade, min_post_trade_amount, post_trade_type)
 
 
-# TEST Data
-# 'US29355A1079', 'US15130G7097', 'US55354G1004', 'DE000A2QDNX9', 'IT0003132476',
+out_path = '../show_row_data.html' #None
+
 isin = 'DE000A2QDNX9'
-show_row_data(file, group, isin)
+#show_row_data (file, group, isin, out_path)
 
+
+counter = 0
+for isin in isin_list:
+    show_row_data (file, group, isin, out_path)
+    counter += 1
+    if counter > 100: break
+    
+if out_path: open_file (out_path)
 
 debug_gz = '../data/pretrade.20230201.08.15.mund.csv.gz'
 time = None # '08:00'

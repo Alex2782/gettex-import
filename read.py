@@ -837,7 +837,7 @@ if __name__ == '__main__':
 
         #DEV-TEST
         #if grp != 'Goldman_Sachs': continue
-        if grp != None: continue
+        #if grp != None: continue
 
         isin_dict = isin_grp_dict[grp]['isin_dict']
         isin_dict_idx = isin_grp_dict[grp]['isin_dict_idx']
