@@ -113,6 +113,9 @@ def pretrade_debug(path, debug_isin, debug_time = None):
     with gzip.open(path, 'rb') as f:
 
         #TODO: volatility (long, short, activity)
+        last_price = 0
+        vola_long = 0
+        vola_short = 0
 
         for line in tqdm(f, total=total, unit=' lines', unit_scale=True):
 
@@ -123,6 +126,13 @@ def pretrade_debug(path, debug_isin, debug_time = None):
 
             if debug_isin == isin or (debug_time is not None and debug_time == timestamp_to_strtime(tm)):
                 
+                if last_price > 0:
+                    vola = price - last_price
+                    if vola > 0: vola_long += vola
+                    elif vola < 0: vola_short += vola
+
+                last_price = price
+
                 out = f"{tmp[1]} | {bid:>8.3f} | {bid_size:>8} | {ask:>8.3f} | {ask_size:>8} | {spread:>8.3f} | {price:>8.3f}"
                 output.append (out)
 
@@ -135,6 +145,7 @@ def pretrade_debug(path, debug_isin, debug_time = None):
             print(out)
 
         print ("=" * 81)
+        print ('vola_long:', round(vola_long, 3), 'vola_short:', round(vola_short, 3), 'diff:', round(vola_long+vola_short, 3))
 # ------------------------------------------------------------------------------------
 # posttrade_debug
 # ------------------------------------------------------------------------------------
@@ -180,7 +191,29 @@ def cast_data_pretrade(arr):
     return isin, tm, seconds, currency, bid, bid_size, ask, ask_size, spread, price
 
 
+# ------------------------------------------------------------------------------------
+# pretrade_list_to_dict: convert list data to dictionary 
+# ------------------------------------------------------------------------------------
+def extra_list_to_dict(extra):
+    # [counter, open,high,low,close, no-pre-bid,no-pre-ask,no-post, vola_profit, bid_long,bid_short,ask_long,ask_short, tmp_last_bid,tmp_last_ask]
+    ret = {}
+    ret['counter'] = extra[0]
+    ret['open'] = extra[1]
+    ret['high'] = extra[2]
+    ret['low'] = extra[3]
+    ret['close'] = extra[4]
+    ret['no-pre-bid'] = extra[5]
+    ret['no-pre-ask'] = extra[6]
+    ret['no-post'] = extra[7]
+    ret['vola_profit'] = extra[8]
+    ret['bid_long'] = extra[9]
+    ret['bid_short'] = extra[10]
+    ret['ask_long'] = extra[11]
+    ret['ask_short'] = extra[12]
+    ret['tmp_last_bid'] = extra[13]
+    ret['tmp_last_ask'] = extra[14]
 
+    return ret
 
 # ------------------------------------------------------------------------------------
 # pretrade_list_to_dict: convert list data to dictionary 
@@ -257,6 +290,27 @@ def init_trade_data(isin_dict):
     return trade_data
 
 # ------------------------------------------------------------------------------------
+# init_trade_sub_lists
+# ------------------------------------------------------------------------------------
+def init_trade_sub_lists(isin_trade_data):
+
+    len_data = len(isin_trade_data)
+
+    # no data, init sub-lists
+    if len_data == 0:
+        # sub-list #0 is for pretrade row data
+        isin_trade_data.append([]) 
+        # sub-list #1 is for extra data and summary: 
+        # [counter, open,high,low,close, no-pre-bid,no-pre-ask,no-post, vola_profit, bid_long,bid_short,ask_long,ask_short, tmp_last_bid,tmp_last_ask]
+        isin_trade_data.append([0, 0,0,0,0, 0,0,0, 0, 0,0,0,0, 0,0])
+        # new len 
+        len_data = len(isin_trade_data)
+        
+    if len_data == 2:
+        #sub-lists #2 is for posttrade row data
+        isin_trade_data.append([]) 
+
+# ------------------------------------------------------------------------------------
 # isin_skip: continue / skip logic for 'read_gz_posttrade' and 'read_gz_pretrade' functions 
 # ------------------------------------------------------------------------------------
 def isin_skip(tmp_isin_grp, check_ignore, isin_group, ignore_isin):
@@ -314,20 +368,7 @@ def read_gz_posttrade(path, isin_dict, group = None, trade_data = []):
             #if isin == 'US5949181045':
             #    print(isin, timestamp_to_strtime(tm), price, amount)
 
-            len_data = len(trade_data[isin_idx])
-
-             #no data, init sub-arrays
-            if len_data == 0:
-                #sub-array #0 is for pretrade row data
-                trade_data[isin_idx].append([]) 
-                #sub-array #1 is for extra data and summary, [counter, open, high, low, close, no pre-bid, no-pre-ask, no-post, vola_profit]
-                trade_data[isin_idx].append([0, 0,0,0,0, 0,0,0, 0])
-                #new len 
-                len_data = len(trade_data[isin_idx])
-
-            if len_data == 2:
-                #sub-array #2 is for posttrade row data
-                trade_data[isin_idx].append([]) 
+            init_trade_sub_lists(trade_data[isin_idx])
 
             if price == 0 or amount == 0:
                 trade_data[isin_idx][1][7] += 1 # no-post
@@ -354,7 +395,7 @@ def read_gz_pretrade(path, isin_dict, group = None, trade_data = []):
     - list: ret_data
     """
 
-    print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+    print('+' * 60)
     print('read_gz_pretrade:', path, ', file size:', get_file_sizeinfo(path), ', group:', group)
 
     isin_group, ignore_isin, check_ignore = get_isin_groups_and_ignore_list(group)
@@ -411,20 +452,14 @@ def read_gz_pretrade(path, isin_dict, group = None, trade_data = []):
             #idx 11 = activity: count data
             #idx 12, 13 = volatility: long, short
             #idx 14, 15, 16 = volatility activity: long, short, equal (no changes)
-            #idx 17, 18 = no values counter: bid, ask  (price or size = 0)
-            data = [tm,  bid_size,bid_size,  ask_size,ask_size,  spread,spread,  price,price,price,price,  1,  0,0,  0,0,0] 
+            data = [tm,  bid_size,bid_size,  ask_size,ask_size,  spread,spread,  price,price,price,price,  1,  0,0,  0,0,1] 
 
             if trade:
 
+                init_trade_sub_lists(trade_data[isin_idx])
+
                 len_data = len(trade_data[isin_idx])
-                if len_data == 0: #no data, init sub-arrays
-
-                    #sub-array #0 is for row data
-                    trade_data[isin_idx].append([]) 
-                    #sub-array #1 is for extra data and summary, [counter, open, high, low, close, no pre-bid, no-pre-ask, no-post, vola_profit]
-                    trade_data[isin_idx].append([0, 0,0,0,0, 0,0,0, 0]) 
-
-                elif len_data == 3: #init posttrade bid / ask
+                if len_data == 3: #init posttrade bid / ask
                     init_posttrade_bid_ask(trade_data[isin_idx][2], tm, seconds, bid, ask)
 
                 #extra data / summary
@@ -437,6 +472,27 @@ def read_gz_pretrade(path, isin_dict, group = None, trade_data = []):
                 if price > tmp_high: trade_data[isin_idx][1][2] = price #high
                 if price < tmp_low or tmp_low == 0: trade_data[isin_idx][1][3] = price #low
                 trade_data[isin_idx][1][4] = price #close
+
+                #init bid / ask vola
+                # #9 = bid_long, #10 = bid_short, #11 = ask_long, #12 = ask_short, #13 = tmp_last_bid, #14 = tmp_last_ask 
+                tmp_last_bid = trade_data[isin_idx][1][13]
+                tmp_last_ask = trade_data[isin_idx][1][14]
+
+                bid_vola = 0
+                ask_vola = 0
+
+                if tmp_last_bid > 0: bid_vola = bid - tmp_last_bid
+                if tmp_last_ask > 0: ask_vola = ask - tmp_last_ask
+
+                if bid_vola > 0: trade_data[isin_idx][1][9] += bid_vola # bid_long
+                elif bid_vola < 0: trade_data[isin_idx][1][10] += bid_vola # bid_short
+                
+                if ask_vola > 0: trade_data[isin_idx][1][11] += ask_vola # bid_long
+                elif ask_vola < 0: trade_data[isin_idx][1][12] += ask_vola # bid_short
+
+                trade_data[isin_idx][1][13] = bid
+                trade_data[isin_idx][1][14] = ask
+
 
                 len_data = len(trade_data[isin_idx][0])
 
@@ -463,7 +519,10 @@ def read_gz_pretrade(path, isin_dict, group = None, trade_data = []):
                         if data[8] > last_data[8]: last_data[8] = data[8] #high
                         if data[9] < last_data[9]: last_data[9] = data[9] #low
 
-                        volatility = data[10] - last_data[10]
+                        # (close - prev_close) + (open - prev-close)
+                        #volatility = (data[10] - last_data[10]) + (data[7] - last_data[10])
+                        volatility = data[7] - last_data[10]
+                        #volatility = data[10] - last_data[10]
                         last_data[10] = data[10] # close
                         
                         #activity
@@ -479,8 +538,17 @@ def read_gz_pretrade(path, isin_dict, group = None, trade_data = []):
                             last_data[15] += 1
                         else:
                             last_data[16] += 1
+                        
+                        #DEV-TEST
+                        #if isin == 'DE000GT02HM8':
+                        #    print ('activity -> long:', last_data[14], ' short:', last_data[15], ' equal:', last_data[16])
+
 
             if bNewData and trade:
+                #DEV-TEST
+                #if isin == 'DE000GT02HM8':
+                #    print ('NEW activity -> long:', data[14], ' short:', data[15], ' equal:', data[16])
+
                 trade_data[isin_idx][0].append(data) #row data
                 
         #END for
@@ -489,7 +557,7 @@ def read_gz_pretrade(path, isin_dict, group = None, trade_data = []):
 
     print('created ret_data in: %.2f s' % (stop - start), ', sizeof:', get_sizeof_info(trade_data) )
     print('ignore_counter:', ignore_counter)
-    print('----------------------------------------------------------')
+    print('-' * 60)
 
     return isin_dict, trade_data
 
@@ -530,8 +598,14 @@ def summary_low_activity(trade_data):
     start = timeit.default_timer()
 
     summarized = 0
+    isin_idx = -1
 
     for trade in trade_data:
+        isin_idx += 1
+        isin = isin_dict_idx[isin_idx]
+
+        #if isin != 'FR0014007LK5': continue
+
         pre = []
         extra = []
         post = []
@@ -550,6 +624,14 @@ def summary_low_activity(trade_data):
             # max. possible profit
             vola_profit = round((vola - min_spread * 2) /extra[2] * 100, 3) 
             extra[8] = vola_profit
+
+            extra[9] = round(extra[9], 3) 
+            extra[10] = round(extra[10], 3) 
+            extra[11] = round(extra[11], 3)
+            extra[12] = round(extra[12], 3)
+
+            extra[13] = 0
+            extra[14] = 0
 
         #DEV-DEBUG
         #if len(extra) > 0 and vola_profit < 0.1: print ('min_spread:', min_spread, 'vola_profit:', vola_profit,'vola:', vola, 'extra:', extra)
@@ -587,13 +669,22 @@ def summary_low_activity(trade_data):
                 if data[8] > last_data[8]: last_data[8] = data[8]
                 if data[9] < last_data[9]: last_data[9] = data[9]
                 
-                volatility = data[10] - last_data[10]
+                # (close - prev_close) + (open - prev-close)
+                #print ('-' * 30)
+                #print ('data:', data)
+                #print ('last_data:', last_data)
+                #volatility = (data[10] - last_data[10]) + (data[7] - last_data[10])
+                volatility = data[7] - last_data[10]
+                #volatility = data[10] - last_data[10]
                 last_data[10] = data[10]
+
+                #print ('volatility:', volatility)
 
                 #TODO Werte überprüfen und berechnen 
                 # DEBUG 
                 # ISIN:  FR0014007LK5
                 # extra: [138, 81.64, 81.64, 81.575, 81.638, 0, 0, 1]
+                
                 # ==================== PRETRADE =======================
                 # 08:00 [480, 200000, 200000, 200000, 200000, 0.33, 0.293, 81.64, 81.64, 81.575, 81.638, 138, 0.102, -0.103, 47, 36, 40]
 
@@ -605,14 +696,23 @@ def summary_low_activity(trade_data):
                 last_data[15] += data[15] # volatility_activity_short
                 last_data[16] += data[16] # volatility_activity_equal
 
+                #print('volatility_long:', last_data[12])
+                #print('volatility_short:', last_data[13])
+
                 if volatility > 0: 
                     last_data[12] = round(last_data[12] + volatility, 3)
                     last_data[14] += 1 
+                    last_data[16] -= 1
                 elif volatility < 0: 
                     last_data[13] = round(last_data[13] + volatility, 3)
                     last_data[15] += 1
-                else:
-                    last_data[16] += 1
+                    last_data[16] -= 1
+                #else:
+                #    last_data[16] += 1
+
+                #print('END volatility_long:', last_data[12])
+                #print('END volatility_short:', last_data[13])
+
             #END for
             trade[0] = [last_data]
 
@@ -737,7 +837,7 @@ if __name__ == '__main__':
 
         #DEV-TEST
         #if grp != 'Goldman_Sachs': continue
-        #if grp != None: continue
+        if grp != None: continue
 
         isin_dict = isin_grp_dict[grp]['isin_dict']
         isin_dict_idx = isin_grp_dict[grp]['isin_dict_idx']
