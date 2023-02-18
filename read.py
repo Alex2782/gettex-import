@@ -210,8 +210,8 @@ def extra_list_to_dict(extra):
     ret['bid_short'] = extra[10]
     ret['ask_long'] = extra[11]
     ret['ask_short'] = extra[12]
-    ret['tmp_last_bid'] = extra[13]
-    ret['tmp_last_ask'] = extra[14]
+    #ret['tmp_last_bid'] = extra[13]
+    #ret['tmp_last_ask'] = extra[14]
 
     return ret
 
@@ -591,7 +591,7 @@ def get_min_spread(pre_trade_data):
 # - without posttrade and low volarity, summary to 15 minutes
 # - converting data, from list to tuple 
 # ------------------------------------------------------------------------------------
-def summary_low_activity(trade_data):
+def summary_low_activity(trade_data, min_vola_profit = 0.1):
 
     print('summary_low_activity:')
 
@@ -603,8 +603,6 @@ def summary_low_activity(trade_data):
     for trade in trade_data:
         isin_idx += 1
         isin = isin_dict_idx[isin_idx]
-
-        #if isin != 'FR0014007LK5': continue
 
         pre = []
         extra = []
@@ -618,8 +616,10 @@ def summary_low_activity(trade_data):
         min_spread = get_min_spread(pre)
         vola = 0
         vola_profit = 0
+        count = 0
 
         if len(extra) > 0: 
+            count = extra[0]
             vola = extra[2] - extra[3] # vola = high - low   
             # max. possible profit
             vola_profit = round((vola - min_spread * 2) /extra[2] * 100, 3) 
@@ -630,20 +630,14 @@ def summary_low_activity(trade_data):
             extra[11] = round(extra[11], 3)
             extra[12] = round(extra[12], 3)
 
-            extra[13] = 0
-            extra[14] = 0
+            #remove tmp_last_bid and tmp_last_ask
+            del extra[13]
+            del extra[13]
 
-        #DEV-DEBUG
-        #if len(extra) > 0 and vola_profit < 0.1: print ('min_spread:', min_spread, 'vola_profit:', vola_profit,'vola:', vola, 'extra:', extra)
-        #if len(post) == 0 and vola <= min_spread and len(pre) > 1:
-        #    print('+++++++++++++++++++++++++++++++++++++++++++++++++')
-        #    print ('min_spread:', min_spread, 'vola:', vola)
-        #    for data in pre:
-        #        print (data)
-        #    print('-------------------------------------------------')
-
+        len_pre = len(pre)
+        len_post = len(post)
         # summary to 15 minutes 
-        if len(post) == 0 and vola_profit < 0.1 and len(pre) > 1:
+        if (len_post == 0 and vola_profit < min_vola_profit and len_pre > 1) or (len_pre > 1 and len_pre < 15 and len_post < 3):
             last_data = []
 
             summarized += len(pre)
@@ -670,23 +664,8 @@ def summary_low_activity(trade_data):
                 if data[9] < last_data[9]: last_data[9] = data[9]
                 
                 # (close - prev_close) + (open - prev-close)
-                #print ('-' * 30)
-                #print ('data:', data)
-                #print ('last_data:', last_data)
-                #volatility = (data[10] - last_data[10]) + (data[7] - last_data[10])
                 volatility = data[7] - last_data[10]
-                #volatility = data[10] - last_data[10]
                 last_data[10] = data[10]
-
-                #print ('volatility:', volatility)
-
-                #TODO Werte überprüfen und berechnen 
-                # DEBUG 
-                # ISIN:  FR0014007LK5
-                # extra: [138, 81.64, 81.64, 81.575, 81.638, 0, 0, 1]
-                
-                # ==================== PRETRADE =======================
-                # 08:00 [480, 200000, 200000, 200000, 200000, 0.33, 0.293, 81.64, 81.64, 81.575, 81.638, 138, 0.102, -0.103, 47, 36, 40]
 
                 last_data[11] += data[11] # activity
                 
@@ -696,9 +675,6 @@ def summary_low_activity(trade_data):
                 last_data[15] += data[15] # volatility_activity_short
                 last_data[16] += data[16] # volatility_activity_equal
 
-                #print('volatility_long:', last_data[12])
-                #print('volatility_short:', last_data[13])
-
                 if volatility > 0: 
                     last_data[12] = round(last_data[12] + volatility, 3)
                     last_data[14] += 1 
@@ -707,33 +683,32 @@ def summary_low_activity(trade_data):
                     last_data[13] = round(last_data[13] + volatility, 3)
                     last_data[15] += 1
                     last_data[16] -= 1
-                #else:
-                #    last_data[16] += 1
-
-                #print('END volatility_long:', last_data[12])
-                #print('END volatility_short:', last_data[13])
 
             #END for
             trade[0] = [last_data]
 
-
-
         # converting to tuple
+        # pretrade
         idx = 0
         for data in pre:
             pre[idx] = tuple(data)
             idx += 1
 
+        #extra
+        if len(extra) > 0: trade[1] = tuple(trade[1])
+
+        #posttrade
         idx = 0
         for data in post:
             post[idx] = tuple(data)
             idx += 1
-
+        
     stop = timeit.default_timer()
 
     print('created ret_data in: %.2f s' % (stop - start), ', sizeof:', get_sizeof_info(trade_data), 'summarized:', summarized)
 
     return trade_data
+
 # ------------------------------------------------------------------------------------
 # init_posttrade_bid_ask
 # ------------------------------------------------------------------------------------
@@ -768,9 +743,18 @@ def list_gz_files(path):
     gz_files = []
     files = os.listdir(path)
     for name in files:
+        file_path = path + '/' + name
 
-        if name[-3:] == '.gz':
-            gz_files.append(name)
+        if os.path.isdir(file_path):
+            # search sub-directories
+            sub_files = os.listdir(file_path)
+            for sub_name in sub_files:
+                if sub_name[-3:] == '.gz':
+                    gz_files.append(file_path + '/' + sub_name)
+        else:
+            # check if current file is '.gz'
+            if name[-3:] == '.gz':
+                gz_files.append(file_path)
     
     return gz_files
 
@@ -816,9 +800,9 @@ if __name__ == '__main__':
     file_posttrade = '../data/posttrade.20230201.08.15.mund.csv.gz' #2.8 MB
     
 
-    #files = list_gz_files('../data')
-    #print(files)
-    #exit()
+    files = list_gz_files('../data')
+    print(files)
+    exit()
 
     #isin_dict, arr = read_gz_pretrade(file, isin_dict) #saved data in: 1.67 s file size: 1.4427 MB
     #isin_dict, arr = read_gz_pretrade(file, isin_dict, 'HSBC') #saved data in: 3.15 s file size: 3.1542 MB
@@ -844,7 +828,10 @@ if __name__ == '__main__':
 
         isin_dict, arr = read_gz_posttrade(file_posttrade, isin_dict, grp, arr)
         isin_dict, arr = read_gz_pretrade(file, isin_dict, grp, arr)
-        arr = summary_low_activity(arr)
+
+        min_vola_profit = 0.1
+        if grp != None: min_vola_profit = 3.0
+        arr = summary_low_activity(arr, min_vola_profit)
 
         data_file = '../data.pickle.zip'
         if grp: data_file = f'../data.{grp}.pickle.zip'

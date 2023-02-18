@@ -237,8 +237,12 @@ def show_row_data(file, group, isin, out_path = None):
     print('-' * 160)
     file_out += str('-' * 160) + "\n"
 
-    bid_p = bid_volume / volume * 100
-    ask_p = ask_volume / volume * 100
+    bid_p = 0
+    ask_p = 0
+
+    if volume > 0:
+        bid_p = bid_volume / volume * 100
+        ask_p = ask_volume / volume * 100
 
     out = f"VOLUME     : {volume:>12.3f} {currency} \n" \
           f"BID VOLUME : {bid_volume:>12.3f} {currency} ({bid_p:.3f} % \n" \
@@ -263,7 +267,7 @@ def show_row_data(file, group, isin, out_path = None):
 # ------------------------------------------------------------------------------------
 # analyze_max_long_max_short
 # ------------------------------------------------------------------------------------
-def analyze_max_long_max_short(file, group, max_open_price = 3):
+def analyze_len_data(file, group, max_open_price = 3):
 
     #isin dictionary
     isin_grp_dict = get_all_isin_groups()
@@ -275,120 +279,31 @@ def analyze_max_long_max_short(file, group, max_open_price = 3):
     isin_dict_idx = isin_grp_dict[group]['isin_dict_idx']
 
     isin_idx = 0
-    max_vola_long = 0
-    max_vola_short = 0
-    isin_idx_max_vola_long = 0
-    isin_idx_max_vola_short = 0
+
+    len_dict = {'err':0, '0': 0}
 
     for isin_data in arr:
 
         if len(isin_data) == 0: 
             isin_idx += 1
+            len_dict['0'] += 1
             continue
 
         try:
             d = isin_data[0]
             extra = isin_data[1]
-
-            #skip price > 3 EURO 
-            trade_dict = pretrade_list_to_dict(d[0])
-            if trade_dict['price_open'] > max_open_price: 
-                isin_idx += 1
-                continue
+            key = str(len(d))
+            if not len_dict.get(key): len_dict[key] = 0 
+            len_dict[str(len(d))] += 1
 
         except Exception as e:
             print(e, isin_data, 'isin_idx: ', isin_idx)
             isin_idx += 1
+            len_dict['err'] += 1
             continue
 
+    print (len_dict)
 
-        #if isin_idx != 37135:
-        #    isin_idx += 1
-        #    continue
-
-        #print('isin:', isin_dict_idx[isin_idx], isin_idx)    
-        #print('extra:', extra)
-
-
-        sum_long = 0
-        sum_short = 0
-        sum_vola_long = 0
-        sum_vola_short = 0
-        sum_vola_open_close_long = 0
-        sum_vola_open_close_short = 0
-
-        prev_trade = False
-        for trade in d:
-
-            #print(timestamp_to_strtime(trade[0]), trade)
-            sum_vola_long += trade[12]
-            sum_vola_short += trade[13]
-
-            open = trade[7]
-            close = trade[10]
-
-            if prev_trade :
-                vola =  round(open - prev_trade[10], 3)
-                if vola > 0: sum_vola_open_close_long += vola
-                else: sum_vola_open_close_short += vola
-
-            prev_trade = trade
-        
-        #print('----------------------------------------------')
-        sum_vola_long = round(sum_vola_long, 3)
-        sum_vola_short = round(sum_vola_short, 3)
-        sum_vola_open_close_long = round(sum_vola_open_close_long, 3)
-        sum_vola_open_close_short = round(sum_vola_open_close_short, 3)
-
-        #print('sum_vola long / short           :', sum_vola_long,  sum_vola_short)
-        #print('sum_vola_open_close long / short:', sum_vola_open_close_long, sum_vola_open_close_short)
-
-        sum_long = round(sum_vola_open_close_long + sum_vola_long, 3)
-        #print('sum_long:', sum_long)
-
-        sum_short = round(sum_vola_open_close_short + sum_vola_short, 3)
-        #print('sum_short:', sum_short)
-
-        sum = round(sum_vola_open_close_long + sum_vola_long + sum_vola_open_close_short + sum_vola_short, 3)
-        #print('sum:', sum)
-
-        if sum_long > max_vola_long:
-            #print ('sum_long > max_vola_long', sum_long, max_vola_long, ', isin_idx:', isin_idx)
-            max_vola_long = sum_long
-            isin_idx_max_vola_long = isin_idx
-
-        if sum_short < max_vola_short:
-            #print ('sum_short < max_vola_short', sum_short, max_vola_short, ', isin_idx:', isin_idx)
-            max_vola_short = sum_short
-            isin_idx_max_vola_short = isin_idx
-
-        isin_idx += 1
-
-        #if isin_idx > 10: break
-        
-
-    print('-----------------------------------------------------------------------')
-    print ('MAX_LONG:', max_vola_long)
-    print('isin:', isin_dict_idx[isin_idx_max_vola_long], 'isin_idx:', isin_idx_max_vola_long)    
-    print('extra:', arr[isin_idx_max_vola_long][1])
-    print ('=======================')
-    d = arr[isin_idx_max_vola_long][0]
-
-    for trade in d:
-        print(timestamp_to_strtime(trade[0]), trade)
-
-    print('------------------------')
-
-    print ('MAX_SHORT:', max_vola_short)
-    print('isin:', isin_dict_idx[isin_idx_max_vola_short], 'isin_idx:', isin_idx_max_vola_short)    
-    print('extra:', arr[isin_idx_max_vola_short][1])
-    print ('=======================')
-    d = arr[isin_idx_max_vola_short][0]
-
-    for trade in d:
-        print(timestamp_to_strtime(trade[0]), trade)
-
-    print('------------------------')
 
 #================================================================================================
 
@@ -397,29 +312,35 @@ def analyze_max_long_max_short(file, group, max_open_price = 3):
 group = 'Goldman_Sachs'
 file = f'../data.{group}.pickle.zip'
 
-group = None
-file = f'../data.pickle.zip'
+#group = None
+#file = f'../data.pickle.zip'
 
-#analyze_max_long_max_short(file, group, 2)
+analyze_len_data(file, group)
 
-min_count = 1000
-max_count = 99999
-max_vola = 99999
+exit()
+min_count = 0
+max_count = 100
+max_vola = 2
 
 #min / max len
-min_post_trade = 1
-max_post_trade = 9999
+min_post_trade = 0
+max_post_trade = 0
 
-min_post_trade_amount = 1
+min_post_trade_amount = 0
 post_trade_type = None   # None = no filter, 0 = unknown, 1 = bid, 2 = ask
 isin_list = analyze_activity(file, group, min_count, max_count, max_vola, min_post_trade, max_post_trade, min_post_trade_amount, post_trade_type)
 
+if group: out_path = f'../show_row_data.{group}.html' #None
+else: out_path = f'../show_row_data.html' #None
+#out_path = None
 
-out_path = '../show_row_data.html' #None
+
+#delete out_path content
+if out_path and os.path.exists(out_path):
+    os.remove(out_path)
 
 isin = 'DE000A2QDNX9'
 #show_row_data (file, group, isin, out_path)
-
 
 counter = 0
 for isin in isin_list:
