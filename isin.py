@@ -1,6 +1,6 @@
 import time
 import random
-from read import load_isin_dict
+from convert import load_isin_dict
 from utils import *
 
 
