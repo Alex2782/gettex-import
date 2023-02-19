@@ -223,3 +223,53 @@ def load_from_pickle(path):
     print('loaded data in: %.2f s' % (stop - start)) 
 
     return ret
+
+# ------------------------------------------------------------------------------------
+# list_gz_files
+# ------------------------------------------------------------------------------------
+def list_gz_files(path, full_path = False, sub_directories = False):
+
+    gz_files = []
+    files = os.listdir(path)
+
+    for name in files:
+        file_path = path + '/' + name
+
+        if sub_directories and os.path.isdir(file_path):
+            # search sub-directories
+            sub_files = os.listdir(file_path)
+            for sub_name in sub_files:
+                if sub_name[-3:] == '.gz':
+                    if full_path: gz_files.append(file_path + '/' + sub_name)
+                    else: gz_files.append(name + '/' + sub_name)
+        else:
+            # check if current file is '.gz'
+            if name[-3:] == '.gz':
+                if full_path: gz_files.append(file_path)
+                else: gz_files.append(name)
+
+    return gz_files
+
+# ------------------------------------------------------------------------------------
+# pretrade_convert_to_numpy
+# TODO notwendig?
+# ------------------------------------------------------------------------------------
+def pretrade_convert_to_numpy(data):
+
+    print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+    print('pretrade_convert_to_numpy')
+
+    start = timeit.default_timer()
+
+    type_struct = [('time', np.uint32), 
+                    ('bid', np.float32), ('bid_size', np.uint32), ('ask', np.float32), ('ask_size', np.uint32)]
+
+    np_arr = {}
+    for key in data:
+        np_arr[key] = np.array(data[key], dtype=type_struct)
+
+    stop = timeit.default_timer()
+    print('created np_arr in: %.2f s' % (stop - start), ', sizeof:', get_sizeof_info(np_arr) )  
+    print('----------------------------------------------------------')  
+
+    return np_arr

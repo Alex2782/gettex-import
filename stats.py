@@ -309,11 +309,15 @@ def analyze_len_data(file, group, max_open_price = 3):
 
 
 #TODO: genauer überprüfen, Zusammenfassung möglich?
+
+#path = "../data/2023-02-03/trade.20230203.11.15"
+path = "../data/trade.20230118.14.45"
+
 group = 'Goldman_Sachs'
-file = f'../data.{group}.pickle.zip'
+file = path + f'.{group}.pickle.zip'
 
 #group = None
-#file = f'../data.pickle.zip'
+#file = path + '.pickle.zip'
 
 analyze_len_data(file, group)
 

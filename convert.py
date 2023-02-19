@@ -87,17 +87,25 @@ def load_isin_dict(group = None):
 
 
     # isin_dict_idx
+    isin_dict_idx = get_isin_dict(isin_dict)
+    print('----------------------------------------------------------')
+
+    return isin_dict, isin_dict_idx
+
+# ---------------------------------------------------------------------------------
+# get_isin_dict
+# ---------------------------------------------------------------------------------
+def get_isin_dict(isin_dict):
+    # isin_dict_idx
     isin_dict_idx = {}
 
     start = timeit.default_timer()
     for key, value in isin_dict.items():
         isin_dict_idx[value['id']] = key
     stop = timeit.default_timer()
+    
     print('created isin_dict_idx in: %.2f s' % (stop - start), ', sizeof:', get_sizeof_info(isin_dict_idx) )
-    print('----------------------------------------------------------')
-
-    return isin_dict, isin_dict_idx
-
+    return isin_dict_idx
 
 # ------------------------------------------------------------------------------------
 # pretrade_debug
@@ -162,7 +170,12 @@ def cast_data_posttrade(arr):
     currency = arr[2]
 
     price = float(arr[3])
-    amount = int(arr[4])
+    amount = 0
+
+    try:
+        amount = int(arr[4])
+    except Exception as e:
+        print(e, arr)
 
     return isin, tm, seconds, currency, price, amount
 
@@ -328,7 +341,7 @@ def isin_skip(tmp_isin_grp, check_ignore, isin_group, ignore_isin):
 # ------------------------------------------------------------------------------------
 # read_gz_posttrade 
 # ------------------------------------------------------------------------------------
-def read_gz_posttrade(path, isin_dict, group = None, trade_data = []):
+def read_gz_posttrade(path, isin_dict, market_type, group = None, trade_data = []):
 
     print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
     print('read_gz_posttrade:', path, ', file size:', get_file_sizeinfo(path), ', group:', group)
@@ -349,7 +362,7 @@ def read_gz_posttrade(path, isin_dict, group = None, trade_data = []):
             data = str(line).replace("b'", "").replace("\\n'", '')
             tmp = data.split(',')
 
-            if isin_skip(tmp[0][0:7], check_ignore, isin_group, ignore_isin):
+            if market_type != 'munc' and isin_skip(tmp[0][0:7], check_ignore, isin_group, ignore_isin):
                 ignore_counter += 1
                 continue
 
@@ -383,7 +396,7 @@ def read_gz_posttrade(path, isin_dict, group = None, trade_data = []):
 # ------------------------------------------------------------------------------------
 # read_gz_pretrade 
 # ------------------------------------------------------------------------------------
-def read_gz_pretrade(path, isin_dict, group = None, trade_data = []):
+def read_gz_pretrade(path, isin_dict, market_type, group = None, trade_data = []):
     """
     ### Parameters:
     - path: gettex pretrade file, gz format
@@ -414,7 +427,7 @@ def read_gz_pretrade(path, isin_dict, group = None, trade_data = []):
             data = str(line).replace("b'", "").replace("\\n'", '')
             tmp = data.split(',')
 
-            if isin_skip(tmp[0][0:7], check_ignore, isin_group, ignore_isin):
+            if market_type != 'munc' and isin_skip(tmp[0][0:7], check_ignore, isin_group, ignore_isin):
                 ignore_counter += 1
                 continue
 
@@ -591,9 +604,9 @@ def get_min_spread(pre_trade_data):
 # - without posttrade and low volarity, summary to 15 minutes
 # - converting data, from list to tuple 
 # ------------------------------------------------------------------------------------
-def summary_low_activity(trade_data, min_vola_profit = 0.1):
+def summary_low_activity(trade_data, isin_dict_idx, min_vola_profit = 0.1):
 
-    print('summary_low_activity:')
+    print('summary_low_activity, len:', len(trade_data))
 
     start = timeit.default_timer()
 
@@ -621,8 +634,12 @@ def summary_low_activity(trade_data, min_vola_profit = 0.1):
         if len(extra) > 0: 
             count = extra[0]
             vola = extra[2] - extra[3] # vola = high - low   
+
             # max. possible profit
-            vola_profit = round((vola - min_spread * 2) /extra[2] * 100, 3) 
+            vola_profit = -999.0
+            if extra[2] > 0:
+                vola_profit = round((vola - min_spread * 2) / extra[2] * 100, 3) 
+
             extra[8] = vola_profit
 
             extra[9] = round(extra[9], 3) 
@@ -713,16 +730,12 @@ def summary_low_activity(trade_data, min_vola_profit = 0.1):
 # init_posttrade_bid_ask
 # ------------------------------------------------------------------------------------
 def init_posttrade_bid_ask(posttrade_list, tm, seconds, bid, ask):
-    #print('init_posttrade_bid_ask:', posttrade_list)
-    #print('tm:', tm, 'seconds:', seconds, 'bid:', bid, 'ask:', ask)
 
     for post in posttrade_list:
         if post[4] > 0: continue #
         if post[0] > tm and post[1] > seconds: break
 
         time_diff = post[0] * 60 + post[1] - tm * 60 - seconds
-
-        #print(time_diff, post) 
 
         if time_diff > -30.00 and time_diff <=0.1:
             price = post[2]
@@ -732,60 +745,129 @@ def init_posttrade_bid_ask(posttrade_list, tm, seconds, bid, ask):
             if abs_price_bid < abs_price_ask: post[4] = 1 #bid
             elif abs_price_bid > abs_price_ask: post[4] = 2 #ask
   
-            #print("SET:", post)
-            #print('time_diff:',time_diff,'-->', 'tm:', tm, 'seconds:', seconds, 'bid:', bid, 'ask:', ask)
-
 
 # ------------------------------------------------------------------------------------
-# list_gz_files
+# get_filenames_from_mask
 # ------------------------------------------------------------------------------------
-def list_gz_files(path):
-    gz_files = []
-    files = os.listdir(path)
-    for name in files:
-        file_path = path + '/' + name
+def get_filenames_from_mask(file_mask):
 
-        if os.path.isdir(file_path):
-            # search sub-directories
-            sub_files = os.listdir(file_path)
-            for sub_name in sub_files:
-                if sub_name[-3:] == '.gz':
-                    gz_files.append(file_path + '/' + sub_name)
-        else:
-            # check if current file is '.gz'
-            if name[-3:] == '.gz':
-                gz_files.append(file_path)
-    
-    return gz_files
+    return [f'pretrade.{file_mask}.mund.csv.gz',
+            f'pretrade.{file_mask}.munc.csv.gz',
+            f'posttrade.{file_mask}.munc.csv.gz', 
+            f'posttrade.{file_mask}.mund.csv.gz']
 
 # ------------------------------------------------------------------------------------
-# pretrade_convert_to_numpy
+# convert_files
 # ------------------------------------------------------------------------------------
-def pretrade_convert_to_numpy(data):
+def convert_files(path, file_mask = None):
 
-    print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-    print('pretrade_convert_to_numpy')
+    print ("convert_files, path:", path, "file_mask:", file_mask)
 
     start = timeit.default_timer()
 
-    type_struct = [('time', np.uint32), 
-                    ('bid', np.float32), ('bid_size', np.uint32), ('ask', np.float32), ('ask_size', np.uint32)]
+    files = []
+    if file_mask:
+        search_files = get_filenames_from_mask(file_mask)
+        for file in search_files:
+            file_path = path + '/' + file
+            if os.path.exists(file_path):
+                files.append(file)
+    else:
+        files = list_gz_files(path, False, False)
 
-    np_arr = {}
-    for key in data:
-        np_arr[key] = np.array(data[key], dtype=type_struct)
+    if len(files) > 0:
+        #isin dictionary
+        isin_grp_dict = get_all_isin_groups()
+        print('ISIN_GROUPS:', ISIN_GROUPS)
+        groups = get_isin_group_keys()
+        print('groups:', groups)
+
+    job_files = {}
+    for file in files:
+
+        tmp = file.split('.', 4)
+        job_name = tmp[1] + '.' + tmp[2] + '.' + tmp[3]
+
+        if not job_files.get(job_name): job_files[job_name] = []
+        job_files[job_name].append(file)
+
+    # sort files -> post.XYZ.munc -> post.XYZ.mund -> pre.XYZ.munc -> pre.XYZ.mund
+    # and convert files
+    for job_name in job_files:
+        
+        print ('JOBNAME:', job_name)
+        job_files[job_name].sort(key=str.lower)
+
+        for grp in groups:
+            
+            print('grp: ', str(grp)) 
+
+            data_file = path + '/' + f'trade.{job_name}'
+            if grp: data_file += f'.{grp}'
+            data_file += '.pickle.zip'
+            
+            if os.path.exists(data_file):
+                print ("SKIP, already exists: ", data_file)
+                continue
+
+            arr = []
+            isin_dict = isin_grp_dict[grp]['isin_dict']
+            isin_dict_idx = isin_grp_dict[grp]['isin_dict_idx']
+
+            for file in job_files[job_name]:
+
+                tmp = file.split('.', 5)
+                trade_type = tmp[0] # posttrade or pretrade
+                market_type = tmp[4] # munc or mund
+
+                print ('file:', file, 'trade_type:', trade_type, 'market_type:', market_type)
+
+                #'munc' files are small, do not group
+                if market_type == 'munc' and grp != None:
+                    print (f"SKIP for grp = '{grp}'")
+                    continue
+                
+                file_path = path + '/' + file
+
+                if trade_type == 'posttrade':
+                    isin_dict, arr = read_gz_posttrade(file_path, isin_dict, market_type, grp, arr)
+                elif trade_type == 'pretrade':
+                    isin_dict, arr = read_gz_pretrade(file_path, isin_dict, market_type, grp, arr)
+            
+            #END for file
+
+            isin_dict_idx = get_isin_dict(isin_dict)
+            isin_grp_dict[grp]['isin_dict_idx'] = isin_dict_idx
+
+            min_vola_profit = 0.1
+            if grp != None: min_vola_profit = 3.0
+            arr = summary_low_activity(arr, isin_dict_idx, min_vola_profit)
+
+            save_as_pickle(data_file, arr)
+            save_isin_dict(isin_dict, grp)
+
+            #free RAM (garbage collector) 
+            del arr
+
+        #END for grp    
+                    
+    #END for job_name     
+
 
     stop = timeit.default_timer()
-    print('created np_arr in: %.2f s' % (stop - start), ', sizeof:', get_sizeof_info(np_arr) )  
-    print('----------------------------------------------------------')  
 
-    return np_arr
-
+    print('files converted in: %.2f s' % (stop - start))
 
 # ===========================================================================================
 
 
 if __name__ == '__main__':
+
+    #convert_files('../data', '20230111.21.00')
+    convert_files('../data/2023-02-03')
+
+    exit()
+
 
     #isin dictionary
     isin_grp_dict = get_all_isin_groups()
@@ -798,17 +880,7 @@ if __name__ == '__main__':
 
     file = '../data/pretrade.20230201.08.15.mund.csv.gz' #362 MB
     file_posttrade = '../data/posttrade.20230201.08.15.mund.csv.gz' #2.8 MB
-    
 
-    files = list_gz_files('../data')
-    print(files)
-    exit()
-
-    #isin_dict, arr = read_gz_pretrade(file, isin_dict) #saved data in: 1.67 s file size: 1.4427 MB
-    #isin_dict, arr = read_gz_pretrade(file, isin_dict, 'HSBC') #saved data in: 3.15 s file size: 3.1542 MB
-    #isin_dict, arr = read_gz_pretrade(file, isin_dict, 'Goldman_Sachs') #saved data in: 9.41 s file size: 10.7039 MB
-    #isin_dict, arr = read_gz_pretrade(file, isin_dict, 'UniCredit') #saved data in: 2.86 s file size: 3.1331 MB
-    
     print('ISIN_GROUPS:', ISIN_GROUPS)
     groups = get_isin_group_keys()
     print('groups:', groups)
@@ -831,7 +903,7 @@ if __name__ == '__main__':
 
         min_vola_profit = 0.1
         if grp != None: min_vola_profit = 3.0
-        arr = summary_low_activity(arr, min_vola_profit)
+        arr = summary_low_activity(arr, isin_dict_idx, min_vola_profit)
 
         data_file = '../data.pickle.zip'
         if grp: data_file = f'../data.{grp}.pickle.zip'
