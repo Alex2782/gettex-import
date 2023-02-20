@@ -50,14 +50,14 @@ def save_isin_dict(isin_dict, group = None):
 
     start = timeit.default_timer()
 
-    print('_ISIN_SIZE_START: ', _ISIN_SIZE_START.get(group), ', new len:', len(isin_dict)) 
+    #print('_ISIN_SIZE_START: ', _ISIN_SIZE_START.get(group), ', new len:', len(isin_dict)) 
 
     if _ISIN_SIZE_START.get(group) != len(isin_dict):
         with open(path, 'wb') as f:
             pickle.dump(isin_dict, f)
     
     stop = timeit.default_timer()
-    print('saved isin_dict in: %.2f s' % (stop - start)) 
+    #print('saved isin_dict in: %.2f s' % (stop - start)) 
 
 # ---------------------------------------------------------------------------------
 # load_isin_dict
@@ -104,7 +104,7 @@ def get_isin_dict(isin_dict):
         isin_dict_idx[value['id']] = key
     stop = timeit.default_timer()
     
-    print('created isin_dict_idx in: %.2f s' % (stop - start), ', sizeof:', get_sizeof_info(isin_dict_idx) )
+    #print('created isin_dict_idx in: %.2f s' % (stop - start), ', sizeof:', get_sizeof_info(isin_dict_idx) )
     return isin_dict_idx
 
 # ------------------------------------------------------------------------------------
@@ -170,12 +170,12 @@ def cast_data_posttrade(arr):
     currency = arr[2]
 
     price = float(arr[3])
-    amount = 0
+    amount = int(float(arr[4]))
 
-    try:
-        amount = int(arr[4])
-    except Exception as e:
-        print(e, arr)
+    #try:
+    #    amount = int(arr[4], base=10)
+    #except Exception as e:
+    #    print('ERROR:', e, arr)
 
     return isin, tm, seconds, currency, price, amount
 
@@ -274,15 +274,15 @@ def get_isin_groups_and_ignore_list(group):
 
     if group and 'ISIN_GROUPS' in globals() and group in ISIN_GROUPS.keys():
         isin_group = ISIN_GROUPS.get(group)
-        print('isin_group:', isin_group)
+        #print('isin_group:', isin_group)
     elif group: 
         group = None
-        print ('Hint: group was set to None') 
+        #print ('Hint: group was set to None') 
 
     #generate ignore-list, append all isin if     
     if not group and 'ISIN_GROUPS' in globals():
         ignore_isin += [item for sublist in ISIN_GROUPS.values() for item in sublist]
-        print ('ignore_isin - len:', len(ignore_isin))
+        #print ('ignore_isin - len:', len(ignore_isin))
 
     check_ignore = False
     if len(ignore_isin) > 0: check_ignore = True
@@ -298,7 +298,7 @@ def init_trade_data(isin_dict):
     for x in range(0, len(isin_dict)):
         trade_data.append([])
 
-    print('empty list - trade_data len: ', len(trade_data))
+    #print('empty list - trade_data len: ', len(trade_data))
 
     return trade_data
 
@@ -343,7 +343,7 @@ def isin_skip(tmp_isin_grp, check_ignore, isin_group, ignore_isin):
 # ------------------------------------------------------------------------------------
 def read_gz_posttrade(path, isin_dict, market_type, group = None, trade_data = []):
 
-    print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+    #print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
     print('read_gz_posttrade:', path, ', file size:', get_file_sizeinfo(path), ', group:', group)
 
     isin_group, ignore_isin, check_ignore = get_isin_groups_and_ignore_list(group)
@@ -388,8 +388,8 @@ def read_gz_posttrade(path, isin_dict, market_type, group = None, trade_data = [
             else:
                 trade_data[isin_idx][2].append([tm, seconds, price, amount, 0]) #idx(5) -> 0 = unknown, 1 = bid, 2 = ask
 
-    print('pretrade_data len:', len(trade_data), ', no_amount_counter:', no_amount_counter)
-    print('----------------------------------------------------------')
+    #print('pretrade_data len:', len(trade_data), ', no_amount_counter:', no_amount_counter)
+    #print('----------------------------------------------------------')
 
     return isin_dict, trade_data
 
@@ -408,7 +408,7 @@ def read_gz_pretrade(path, isin_dict, market_type, group = None, trade_data = []
     - list: ret_data
     """
 
-    print('+' * 60)
+    #print('+' * 60)
     print('read_gz_pretrade:', path, ', file size:', get_file_sizeinfo(path), ', group:', group)
 
     isin_group, ignore_isin, check_ignore = get_isin_groups_and_ignore_list(group)
@@ -568,9 +568,9 @@ def read_gz_pretrade(path, isin_dict, market_type, group = None, trade_data = []
 
     stop = timeit.default_timer()
 
-    print('created ret_data in: %.2f s' % (stop - start), ', sizeof:', get_sizeof_info(trade_data) )
-    print('ignore_counter:', ignore_counter)
-    print('-' * 60)
+    #print('created ret_data in: %.2f s' % (stop - start), ', sizeof:', get_sizeof_info(trade_data) )
+    #print('ignore_counter:', ignore_counter)
+    #print('-' * 60)
 
     return isin_dict, trade_data
 
@@ -601,12 +601,12 @@ def get_min_spread(pre_trade_data):
     return min_spread
 # ------------------------------------------------------------------------------------
 # summary_low_activity: 
-# - without posttrade and low volarity, summary to 15 minutes
+# - without posttrade and low volatility, summary to 15 minutes
 # - converting data, from list to tuple 
 # ------------------------------------------------------------------------------------
 def summary_low_activity(trade_data, isin_dict_idx, min_vola_profit = 0.1):
 
-    print('summary_low_activity, len:', len(trade_data))
+    #print('summary_low_activity, len:', len(trade_data))
 
     start = timeit.default_timer()
 
@@ -722,7 +722,7 @@ def summary_low_activity(trade_data, isin_dict_idx, min_vola_profit = 0.1):
         
     stop = timeit.default_timer()
 
-    print('created ret_data in: %.2f s' % (stop - start), ', sizeof:', get_sizeof_info(trade_data), 'summarized:', summarized)
+    #print('created ret_data in: %.2f s' % (stop - start), ', sizeof:', get_sizeof_info(trade_data), 'summarized:', summarized)
 
     return trade_data
 
@@ -759,7 +759,7 @@ def get_filenames_from_mask(file_mask):
 # ------------------------------------------------------------------------------------
 # convert_files
 # ------------------------------------------------------------------------------------
-def convert_files(path, file_mask = None):
+def convert_files(path, overwrite = False, file_mask = None):
 
     print ("convert_files, path:", path, "file_mask:", file_mask)
 
@@ -778,9 +778,7 @@ def convert_files(path, file_mask = None):
     if len(files) > 0:
         #isin dictionary
         isin_grp_dict = get_all_isin_groups()
-        print('ISIN_GROUPS:', ISIN_GROUPS)
         groups = get_isin_group_keys()
-        print('groups:', groups)
 
     job_files = {}
     for file in files:
@@ -795,18 +793,16 @@ def convert_files(path, file_mask = None):
     # and convert files
     for job_name in job_files:
         
-        print ('JOBNAME:', job_name)
+        #print ('JOBNAME:', job_name)
         job_files[job_name].sort(key=str.lower)
 
         for grp in groups:
-            
-            print('grp: ', str(grp)) 
 
             data_file = path + '/' + f'trade.{job_name}'
             if grp: data_file += f'.{grp}'
             data_file += '.pickle.zip'
-            
-            if os.path.exists(data_file):
+
+            if overwrite == False and os.path.exists(data_file):
                 print ("SKIP, already exists: ", data_file)
                 continue
 
@@ -820,11 +816,11 @@ def convert_files(path, file_mask = None):
                 trade_type = tmp[0] # posttrade or pretrade
                 market_type = tmp[4] # munc or mund
 
-                print ('file:', file, 'trade_type:', trade_type, 'market_type:', market_type)
+                #print ('file:', file, 'trade_type:', trade_type, 'market_type:', market_type)
 
                 #'munc' files are small, do not group
                 if market_type == 'munc' and grp != None:
-                    print (f"SKIP for grp = '{grp}'")
+                    #print (f"SKIP for grp = '{grp}'")
                     continue
                 
                 file_path = path + '/' + file
@@ -863,8 +859,12 @@ def convert_files(path, file_mask = None):
 
 if __name__ == '__main__':
 
-    #convert_files('../data', '20230111.21.00')
-    convert_files('../data/2023-02-03')
+    overwrite = True
+    #convert_files('../data', overwrite, '20230111.21.00')
+    #convert_files('../data/2023-02-03', overwrite)
+    #convert_files('../data', overwrite)
+    convert_files('/Volumes/Downloads/gettex/data/2023-01-16', overwrite)
+    
 
     exit()
 

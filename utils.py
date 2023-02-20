@@ -47,7 +47,7 @@ def get_html(url, log = True):
     try:
         html = urllib.request.urlopen(url).read()
     except Exception as e:
-        print(f"Error: {str(e)}, url: {url}")
+        print(f"ERROR: {str(e)}, url: {url}")
 
     return str(html)
 
@@ -198,13 +198,13 @@ def save_as_pickle(path, data):
 
     start = timeit.default_timer()
 
-    print('save_as_pickle:', path, 'data:', len(data)) 
+    #print('save_as_pickle:', path, 'data:', len(data)) 
 
     with zipfile.ZipFile(path, 'w', compression=zipfile.ZIP_BZIP2, compresslevel=9) as f:
         f.writestr("data.pickle", pickle.dumps(data))
 
     stop = timeit.default_timer()
-    print('saved data in: %.2f s' % (stop - start), 'file size:', get_file_sizeinfo(path)) 
+    #print('saved data in: %.2f s' % (stop - start), 'file size:', get_file_sizeinfo(path)) 
 
 # ---------------------------------------------------------------------------------
 # load_from_pickle: load data from a pickle file
@@ -213,14 +213,14 @@ def load_from_pickle(path):
 
     start = timeit.default_timer()
 
-    print('load_from_pickle:', path)
+    #print('load_from_pickle:', path)
 
     ret = []
     with zipfile.ZipFile(path, "r") as zf:
         ret = pickle.loads(zf.read("data.pickle"))
 
     stop = timeit.default_timer()
-    print('loaded data in: %.2f s' % (stop - start)) 
+    #print('loaded data in: %.2f s' % (stop - start)) 
 
     return ret
 

@@ -16,7 +16,7 @@ def get_onvista_data(isin):
     try:
         issuer_name = ret.get('derivative_snapshot').get('derivativesIssuer').get('name')
     except Exception as e:
-        print(f"Error: {str(e)}")
+        print(f"ERROR: {str(e)}")
 
     market_name = None
     next_data = ret.get('__NEXT_DATA__')
@@ -25,7 +25,7 @@ def get_onvista_data(isin):
         try:
             market_name = next_data['props']['pageProps']['data']['snapshot']['quote']['market']['name']
         except Exception as e:
-            print(f"Error: {str(e)}")
+            print(f"ERROR: {str(e)}")
 
     return entityType, entitySubType, issuer_name, market_name, ret
 

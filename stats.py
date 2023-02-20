@@ -66,7 +66,7 @@ def analyze_activity(file, group, min_count = 1, max_count = 9999, max_vola = 99
                 isin_list.append(isin_dict_idx[isin_idx])
 
         except Exception as e:
-            print(e, isin_data, 'isin_idx: ', isin_idx)
+            print('ERROR:', e, isin_data, 'isin_idx: ', isin_idx)
             isin_idx += 1
             continue
         
@@ -110,7 +110,7 @@ def show_row_data(file, group, isin, out_path = None):
             post_trade = arr[isin_idx][2]
 
     except Exception as e:
-        print(e, arr[isin_idx], 'isin_idx: ', isin_idx)
+        print('ERROR:', e, arr[isin_idx], 'isin_idx: ', isin_idx)
 
     # ==================== EXTRA DATA ======================
 
@@ -297,7 +297,7 @@ def analyze_len_data(file, group, max_open_price = 3):
             len_dict[str(len(d))] += 1
 
         except Exception as e:
-            print(e, isin_data, 'isin_idx: ', isin_idx)
+            print('ERROR:', e, isin_data, 'isin_idx: ', isin_idx)
             isin_idx += 1
             len_dict['err'] += 1
             continue
