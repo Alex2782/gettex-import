@@ -1,4 +1,3 @@
-import gzip
 from utils import *
 from isin_groups import *
 
@@ -7,7 +6,6 @@ from isin_groups import *
 # ---------------------------------------------------------------------------------
 def get_isin_group_keys():
     return [None] + list(ISIN_GROUPS.keys())
-
 
 # ---------------------------------------------------------------------------------
 # get_all_isin_groups
@@ -50,11 +48,13 @@ def save_isin_dict(isin_dict, group = None):
 
     start = timeit.default_timer()
 
-    #print('_ISIN_SIZE_START: ', _ISIN_SIZE_START.get(group), ', new len:', len(isin_dict)) 
-
     if _ISIN_SIZE_START.get(group) != len(isin_dict):
+
+        print('save ISIN, _ISIN_SIZE_START: ', _ISIN_SIZE_START.get(group), ', new len:', len(isin_dict)) 
         with open(path, 'wb') as f:
             pickle.dump(isin_dict, f)
+        
+        _ISIN_SIZE_START[group] = len(isin_dict)
     
     stop = timeit.default_timer()
     #print('saved isin_dict in: %.2f s' % (stop - start)) 
@@ -744,7 +744,6 @@ def init_posttrade_bid_ask(posttrade_list, tm, seconds, bid, ask):
 
             if abs_price_bid < abs_price_ask: post[4] = 1 #bid
             elif abs_price_bid > abs_price_ask: post[4] = 2 #ask
-  
 
 # ------------------------------------------------------------------------------------
 # get_filenames_from_mask
@@ -770,7 +769,7 @@ def convert_files(path, overwrite = False, file_mask = None):
         search_files = get_filenames_from_mask(file_mask)
         for file in search_files:
             file_path = path + '/' + file
-            if os.path.exists(file_path):
+            if os.path.exists(file_path) and is_valid_gzip(file_path):
                 files.append(file)
     else:
         files = list_gz_files(path, False, False)
@@ -788,6 +787,10 @@ def convert_files(path, overwrite = False, file_mask = None):
 
         if not job_files.get(job_name): job_files[job_name] = []
         job_files[job_name].append(file)
+
+    
+    #key sort (job_name)
+    job_files = dict(sorted(job_files.items(), key=lambda x: x[0]))
 
     # sort files -> post.XYZ.munc -> post.XYZ.mund -> pre.XYZ.munc -> pre.XYZ.mund
     # and convert files
@@ -834,21 +837,22 @@ def convert_files(path, overwrite = False, file_mask = None):
 
             isin_dict_idx = get_isin_dict(isin_dict)
             isin_grp_dict[grp]['isin_dict_idx'] = isin_dict_idx
+            isin_grp_dict[grp]['isin_dict'] = isin_dict
+
+            save_isin_dict(isin_dict, grp)
 
             min_vola_profit = 0.1
             if grp != None: min_vola_profit = 3.0
             arr = summary_low_activity(arr, isin_dict_idx, min_vola_profit)
 
             save_as_pickle(data_file, arr)
-            save_isin_dict(isin_dict, grp)
-
+            
             #free RAM (garbage collector) 
             del arr
 
         #END for grp    
                     
-    #END for job_name     
-
+    #END for job_name   
 
     stop = timeit.default_timer()
 
@@ -860,68 +864,18 @@ def convert_files(path, overwrite = False, file_mask = None):
 if __name__ == '__main__':
 
     overwrite = True
+    #path = "../data"
+    path = "/Volumes/Downloads/gettex/data"
+
     #convert_files('../data', overwrite, '20230111.21.00')
     #convert_files('../data/2023-02-03', overwrite)
     #convert_files('../data', overwrite)
-    convert_files('/Volumes/Downloads/gettex/data/2023-01-16', overwrite)
-    
 
-    exit()
+    convert_files(path + '/2023-01-17', overwrite)
+    convert_files(path + '/2023-01-18', overwrite)
+    convert_files(path + '/2023-01-19', overwrite)
+    convert_files(path + '/2023-01-20', overwrite)
 
+    convert_files(path + '/2023-01-23', overwrite)
+    convert_files(path + '/2023-01-24', overwrite)
 
-    #isin dictionary
-    isin_grp_dict = get_all_isin_groups()
-
-    #file = '../data/pretrade.20230111.21.00.munc.csv.gz' #60 KB
-    #file = '../data/pretrade.20230111.21.00.mund.csv.gz' #207 MB
-    #file = '../data/pretrade.20230112.11.00.mund.csv.gz' #240 MB
-    #file = '../data/pretrade.20230112.10.45.mund.csv.gz' #293 MB
-    #file = '../data/pretrade.20230118.14.45.mund.csv.gz' #551 MB
-
-    file = '../data/pretrade.20230201.08.15.mund.csv.gz' #362 MB
-    file_posttrade = '../data/posttrade.20230201.08.15.mund.csv.gz' #2.8 MB
-
-    print('ISIN_GROUPS:', ISIN_GROUPS)
-    groups = get_isin_group_keys()
-    print('groups:', groups)
-
-
-    arr = []
-
-    for grp in groups:
-        print('grp: ', str(grp)) 
-
-        #DEV-TEST
-        #if grp != 'Goldman_Sachs': continue
-        #if grp != None: continue
-
-        isin_dict = isin_grp_dict[grp]['isin_dict']
-        isin_dict_idx = isin_grp_dict[grp]['isin_dict_idx']
-
-        isin_dict, arr = read_gz_posttrade(file_posttrade, isin_dict, grp, arr)
-        isin_dict, arr = read_gz_pretrade(file, isin_dict, grp, arr)
-
-        min_vola_profit = 0.1
-        if grp != None: min_vola_profit = 3.0
-        arr = summary_low_activity(arr, isin_dict_idx, min_vola_profit)
-
-        data_file = '../data.pickle.zip'
-        if grp: data_file = f'../data.{grp}.pickle.zip'
-
-        save_as_pickle(data_file, arr)
-        save_isin_dict(isin_dict, grp)
-
-        #free RAM (garbage collector) 
-        del arr
-        arr = []
-
-
-
-
-    # DE0007236101 Siemens
-    #isin_idx = isin_dict['DE0007236101']['id']
-
-    #data = arr[isin_idx]
-
-    #for d in data[0]:
-    #    print(timestamp_to_strtime(d[0]), d)

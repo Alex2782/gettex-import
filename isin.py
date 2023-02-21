@@ -1,6 +1,6 @@
 import time
 import random
-from convert import load_isin_dict
+from convert import load_isin_dict, get_all_isin_groups, get_isin_group_keys
 from utils import *
 
 
@@ -33,35 +33,41 @@ def get_onvista_data(isin):
 
 init_request()
 
-isin_dict, isin_dict_idx = load_isin_dict()
+#isin_dict, isin_dict_idx = load_isin_dict()
+#print('len:', len(isin_dict))
 
-print('len:', len(isin_dict))
+isin_grp_dict = get_all_isin_groups()
+groups = get_isin_group_keys()
+
+for grp in groups:  
+    isin_dict = isin_grp_dict[grp]['isin_dict']
+    print(grp, 'len:', len(isin_dict))
+
+    lang_isin = {}
+    isin_group = {}
+
+    for isin in isin_dict:
+        lang = isin[0:2]
+
+        obj = lang_isin.get(lang)
+        if obj: obj['count'] += 1
+        else: lang_isin[lang] = {'count': 1}
+
+        if lang == 'DE':
+            group = isin[5:7]
+            obj = isin_group.get(group)
+            
+            if obj: 
+                obj['count'] += 1
+                if len(obj['isin']) < 5: obj['isin'].append(isin) 
+            else: 
+                isin_group[group] = {'count': 1, 'isin':[isin]}
 
 
-lang_isin = {}
-isin_group = {}
+    for lang in lang_isin:
+        print ('lang:', lang, ', count:', lang_isin[lang]['count'])
 
-for isin in isin_dict:
-    lang = isin[0:2]
-
-    obj = lang_isin.get(lang)
-    if obj: obj['count'] += 1
-    else: lang_isin[lang] = {'count': 1}
-
-    if lang == 'DE':
-        group = isin[5:7]
-        obj = isin_group.get(group)
-        
-        if obj: 
-            obj['count'] += 1
-            if len(obj['isin']) < 5: obj['isin'].append(isin) 
-        else: 
-            isin_group[group] = {'count': 1, 'isin':[isin]}
-
-
-for lang in lang_isin:
-    print ('lang:', lang, ', count:', lang_isin[lang]['count'])
-
+exit()
 
 for group in isin_group:
 

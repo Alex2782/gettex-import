@@ -9,6 +9,7 @@ import numpy as np
 import timeit
 import zipfile
 import pickle
+import gzip
 
 # -------------------------------------------------
 # init_request: add header 'User-agent'
@@ -225,6 +226,23 @@ def load_from_pickle(path):
     return ret
 
 # ------------------------------------------------------------------------------------
+# is_valid_gzip
+# ------------------------------------------------------------------------------------  
+def is_valid_gzip(path):
+
+    valid = False
+    with open(path, 'rb') as f:
+
+        try:
+            magic = f.read(2)
+            if magic == b'\037\213': valid = True
+            else: print (path, 'Not a gzipped file (%r)' % magic)
+        except Exception as e:
+            print('ERROR:', e)
+            
+    return valid
+
+# ------------------------------------------------------------------------------------
 # list_gz_files
 # ------------------------------------------------------------------------------------
 def list_gz_files(path, full_path = False, sub_directories = False):
@@ -239,12 +257,12 @@ def list_gz_files(path, full_path = False, sub_directories = False):
             # search sub-directories
             sub_files = os.listdir(file_path)
             for sub_name in sub_files:
-                if sub_name[-3:] == '.gz':
+                if sub_name[-3:] == '.gz' and is_valid_gzip(file_path + '/' + sub_name):
                     if full_path: gz_files.append(file_path + '/' + sub_name)
                     else: gz_files.append(name + '/' + sub_name)
         else:
             # check if current file is '.gz'
-            if name[-3:] == '.gz':
+            if name[-3:] == '.gz' and is_valid_gzip(file_path):
                 if full_path: gz_files.append(file_path)
                 else: gz_files.append(name)
 
