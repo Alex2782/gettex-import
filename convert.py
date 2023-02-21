@@ -118,7 +118,7 @@ def pretrade_debug(path, debug_isin, debug_time = None):
 
     output = []
 
-    with gzip.open(path, 'rb') as f:
+    with gzip.open(path, 'rt') as f:
 
         #TODO: volatility (long, short, activity)
         last_price = 0
@@ -127,8 +127,7 @@ def pretrade_debug(path, debug_isin, debug_time = None):
 
         for line in tqdm(f, total=total, unit=' lines', unit_scale=True):
 
-            data = str(line).replace("b'", "").replace("\\n'", '')
-            tmp = data.split(',')
+            tmp = line.split(',')
 
             isin, tm, seconds, currency, bid, bid_size, ask, ask_size, spread, price = cast_data_pretrade(tmp)
 
@@ -355,12 +354,11 @@ def read_gz_posttrade(path, isin_dict, market_type, group = None, trade_data = [
 
     total = None
 
-    with gzip.open(path, 'rb') as f:
+    with gzip.open(path, 'rt') as f:
 
         for line in tqdm(f, total=total, unit=' lines', unit_scale=True):
  
-            data = str(line).replace("b'", "").replace("\\n'", '')
-            tmp = data.split(',')
+            tmp = line.split(',')
 
             if market_type != 'munc' and isin_skip(tmp[0][0:7], check_ignore, isin_group, ignore_isin):
                 ignore_counter += 1
@@ -420,12 +418,11 @@ def read_gz_pretrade(path, isin_dict, market_type, group = None, trade_data = []
 
     total = None
 
-    with gzip.open(path, 'rb') as f:
+    with gzip.open(path, 'rt') as f:
 
         for line in tqdm(f, total=total, unit=' lines', unit_scale=True):
 
-            data = str(line).replace("b'", "").replace("\\n'", '')
-            tmp = data.split(',')
+            tmp = line.split(',')
 
             if market_type != 'munc' and isin_skip(tmp[0][0:7], check_ignore, isin_group, ignore_isin):
                 ignore_counter += 1
@@ -865,17 +862,21 @@ if __name__ == '__main__':
 
     overwrite = True
     #path = "../data"
-    path = "/Volumes/Downloads/gettex/data"
+    path = "../data_ssd"
 
-    #convert_files('../data', overwrite, '20230111.21.00')
+    convert_files(path, overwrite, '20230111.21.00')
     #convert_files('../data/2023-02-03', overwrite)
     #convert_files('../data', overwrite)
 
-    convert_files(path + '/2023-01-17', overwrite)
-    convert_files(path + '/2023-01-18', overwrite)
-    convert_files(path + '/2023-01-19', overwrite)
-    convert_files(path + '/2023-01-20', overwrite)
+    #convert_files(path + '/2023-01-12', overwrite)
+    #convert_files(path + '/2023-01-13', overwrite)
+    #convert_files(path + '/2023-01-16', overwrite)
 
-    convert_files(path + '/2023-01-23', overwrite)
-    convert_files(path + '/2023-01-24', overwrite)
+    #convert_files(path + '/2023-01-17', overwrite)
+    #convert_files(path + '/2023-01-18', overwrite)
+    #convert_files(path + '/2023-01-19', overwrite)
+    #convert_files(path + '/2023-01-20', overwrite)
+
+    #convert_files(path + '/2023-01-23', overwrite)
+    #convert_files(path + '/2023-01-24', overwrite)
 
