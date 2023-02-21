@@ -1,4 +1,5 @@
 from utils import *
+import time
 import re
 import os.path
 from datetime import datetime
@@ -60,6 +61,17 @@ for url in files:
         continue 
     
     download_url(url, output_path)
+    time.sleep(1)
+
+    #check gz file and try again
+    if not is_valid_gzip(output_path):
+        time.sleep(2)
+        print ('TRY #2: ', output_path)
+        download_url(url, output_path)
+        time.sleep(2)
+        if is_valid_gzip(output_path): print("OK !")
+
+
 
 
 
