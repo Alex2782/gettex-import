@@ -27,6 +27,7 @@ def get_file_date(name):
 
 # =======================================================================================================
 
+start = timeit.default_timer()
 
 init_request() # init 'User-agent' for all requests
 
@@ -71,9 +72,9 @@ for url in files:
         time.sleep(2)
         if is_valid_gzip(output_path): print("OK !")
 
+stop = timeit.default_timer()
 
-
-
+show_runtime('files downloaded in', start, stop)
 
 # TODO: main data
 # https://mein.finanzen-zero.net/assets/searchdata/downloadable-instruments.csv

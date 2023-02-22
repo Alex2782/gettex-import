@@ -194,8 +194,11 @@ def cast_data_pretrade(arr):
     ask_size = int(arr[6]) #ask_size
 
     if bid > 0 and ask > 0:
-        spread = round(ask - bid, 3)
-        price = round(bid + spread / 2, 3)
+        #spread = round(ask - bid, 3)
+        #price = round(bid + spread / 2, 3)
+        #speed up, without round
+        spread = ask - bid
+        price = bid + spread / 2
     else: # 'bid' or 'ask' can be 0 values
         spread = 0
         price = ask + bid # shortener for price = ask or price = bid
@@ -286,20 +289,15 @@ def get_isin_groups_and_ignore_list(group):
     check_ignore = False
     if len(ignore_isin) > 0: check_ignore = True
 
-    return isin_group, ignore_isin, check_ignore
+    return set(isin_group), set(ignore_isin), check_ignore
+    #return isin_group, ignore_isin, check_ignore
 
 
 # ------------------------------------------------------------------------------------
 # init_trade_data 
 # ------------------------------------------------------------------------------------
 def init_trade_data(isin_dict):
-    trade_data = []
-    for x in range(0, len(isin_dict)):
-        trade_data.append([])
-
-    #print('empty list - trade_data len: ', len(trade_data))
-
-    return trade_data
+    return [[] for _ in range(len(isin_dict))]
 
 # ------------------------------------------------------------------------------------
 # init_trade_sub_lists
@@ -358,11 +356,11 @@ def read_gz_posttrade(path, isin_dict, market_type, group = None, trade_data = [
 
         for line in tqdm(f, total=total, unit=' lines', unit_scale=True):
  
-            tmp = line.split(',')
-
-            if market_type != 'munc' and isin_skip(tmp[0][0:7], check_ignore, isin_group, ignore_isin):
+            if market_type != 'munc' and isin_skip(line[0:7], check_ignore, isin_group, ignore_isin):
                 ignore_counter += 1
                 continue
+
+            tmp = line.split(',')
 
             isin, tm, seconds, currency, price, amount = cast_data_posttrade(tmp)
             if amount == 0: no_amount_counter +=1
@@ -422,11 +420,11 @@ def read_gz_pretrade(path, isin_dict, market_type, group = None, trade_data = []
 
         for line in tqdm(f, total=total, unit=' lines', unit_scale=True):
 
-            tmp = line.split(',')
-
-            if market_type != 'munc' and isin_skip(tmp[0][0:7], check_ignore, isin_group, ignore_isin):
+            if market_type != 'munc' and isin_skip(line[0:7], check_ignore, isin_group, ignore_isin):
                 ignore_counter += 1
                 continue
+
+            tmp = line.split(',')
 
             isin, tm, seconds, currency, bid, bid_size, ask, ask_size, spread, price = cast_data_pretrade(tmp)
 
@@ -853,7 +851,7 @@ def convert_files(path, overwrite = False, file_mask = None):
 
     stop = timeit.default_timer()
 
-    print('files converted in: %.2f s' % (stop - start))
+    show_runtime('files converted in', start, stop)
 
 # ===========================================================================================
 
@@ -861,12 +859,14 @@ def convert_files(path, overwrite = False, file_mask = None):
 if __name__ == '__main__':
 
     overwrite = True
-    #path = "../data"
+    
+    # SSD
     path = "../data_ssd"
-
-    convert_files(path, overwrite, '20230111.21.00')
+    #convert_files(path, overwrite, '20230111.21.00')
     #convert_files('../data/2023-02-03', overwrite)
-    #convert_files('../data', overwrite)
+
+    # HDD
+    path = "../data"
 
     #convert_files(path + '/2023-01-12', overwrite)
     #convert_files(path + '/2023-01-13', overwrite)
@@ -879,4 +879,11 @@ if __name__ == '__main__':
 
     #convert_files(path + '/2023-01-23', overwrite)
     #convert_files(path + '/2023-01-24', overwrite)
+    #convert_files(path + '/2023-01-25', overwrite)
+    #convert_files(path + '/2023-01-26', overwrite)
+    #convert_files(path + '/2023-01-27', overwrite)
+
+    #convert_files(path + '/2023-01-30', overwrite)
+    #convert_files(path + '/2023-01-31', overwrite)
+    convert_files(path + '/2023-02-01', overwrite)
 

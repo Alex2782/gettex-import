@@ -114,10 +114,6 @@ def strtime_to_timestamp(str):
 
     timestamp = h * 60 + m
 
-    # TODO: Performance überprüfen, Vorschlag von ChatGPT
-    # h, m = map(int, str.split(':')[:2])
-    # timestamp = h * 60 + m
-
     return timestamp, seconds
 
 # ---------------------------------------------------------------------------------
@@ -291,3 +287,17 @@ def pretrade_convert_to_numpy(data):
     print('----------------------------------------------------------')  
 
     return np_arr
+
+# ------------------------------------------------------------------------------------
+# show_runtime
+# ------------------------------------------------------------------------------------
+def show_runtime(label, start, stop):
+    runtime = stop - start
+    if runtime < 600: 
+        str_runtime  = label + ': %.2f s' % runtime
+    else:
+        runtime = round(runtime / 60)
+        str_runtime = label + ' ' + timestamp_to_strtime(runtime) + '(HH:MM) -> %.2f s' % (stop - start)
+    
+    print(str_runtime)
+
