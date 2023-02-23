@@ -411,6 +411,11 @@ def read_gz_pretrade(path, isin_dict, market_type, group = None, trade_data = []
     ignore_counter = 0
     start = timeit.default_timer()
 
+    #faster dictionary, only id
+    search_isin_dict = {}
+    for isin in isin_dict:
+        search_isin_dict[isin] =  isin_dict[isin]['id']
+
     if len(trade_data) == 0:
         trade_data = init_trade_data(isin_dict)
 
@@ -432,15 +437,18 @@ def read_gz_pretrade(path, isin_dict, market_type, group = None, trade_data = []
             bNewData = True
             len_data = 0
 
-            isin_obj = isin_dict.get(isin)
+            #isin_obj = isin_dict.get(isin)
+            isin_obj = search_isin_dict.get(isin) #faster
             if isin_obj is None: 
                 trade_data.append([])
                 isin_idx = len(trade_data) - 1
                 isin_dict[isin] = {'id': isin_idx, 'c': currency}
+                search_isin_dict[isin] = isin_idx #faster
             else:
-                isin_idx = isin_dict[isin]['id']
+                #isin_idx = isin_dict[isin]['id']
+                isin_idx = isin_obj #faster
 
-            #extra data, no 'bid' oder 'ask'
+            #extra data, no 'bid' or 'ask'
             if len (trade_data[isin_idx]) > 1:
                 #print(trade_data[isin_idx])
                 if bid == 0 or bid_size == 0: trade_data[isin_idx][1][5] += 1
@@ -889,9 +897,12 @@ if __name__ == '__main__':
     #convert_files(path + '/2023-02-02', overwrite)
     #convert_files(path + '/2023-02-03', overwrite)
 
-    convert_files(path + '/2023-02-06')
-    convert_files(path + '/2023-02-07', overwrite)
-    convert_files(path + '/2023-02-08', overwrite)
-    convert_files(path + '/2023-02-09', overwrite)
-    convert_files(path + '/2023-02-10', overwrite)
+    #convert_files(path + '/2023-02-06')
+    #convert_files(path + '/2023-02-07', overwrite)
+    #convert_files(path + '/2023-02-08', overwrite)
+    #convert_files(path + '/2023-02-09', overwrite)
+    #convert_files(path + '/2023-02-10', overwrite)
+
+    convert_files(path + '/2023-02-13', overwrite)
+    convert_files(path + '/2023-02-14', overwrite)
 
