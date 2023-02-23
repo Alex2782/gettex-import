@@ -1,6 +1,8 @@
 # gettex-import
  Download and import "Delayed Data" (www.gettex.de, Munich Stock Exchange)
 
+# TODO
+Description for download.py and convert.py
 
 
 ## Delayed Data
