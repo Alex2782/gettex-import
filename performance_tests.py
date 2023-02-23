@@ -153,13 +153,34 @@ def read_gz(path, isin_dict, market_type, group = None, trade_data = []):
 
             #list-search: 32.458 s, speed:  7.060 MB/s
             #set-search: 28.318 s, speed:  8.093 MB/s
-            #tmp = line.split(',')
+            tmp = line.split(',')
 
             #ohne -> 35.428 s, speed:  6.469 MB/s
-            #isin, tm, seconds, currency, bid, bid_size, ask, ask_size, spread, price = cast_data_pretrade_test(tmp)
+            isin, tm, seconds, currency, bid, bid_size, ask, ask_size, spread, price = cast_data_pretrade_test(tmp)
 
             #nach 'split' und 'cast' mit 'round' ALL GROUP: 52.742 s, speed:  4.345 MB/s
             # ---->                 ohne 'round' ALL GROUP: 46.502 s, speed:  4.928 MB/s
+
+
+            # None: 10.029 s, speed: 22.852 MB/s
+            # HSBC: 9.403 s, speed: 24.373 MB/s
+            # Goldman_Sachs: 13.776 s, speed: 16.635 MB/s
+            # UniCredit: 9.948 s, speed: 23.036 MB/s
+            #continue
+
+            isin_obj = isin_dict.get(isin)
+            if isin_obj is None: 
+                trade_data.append([])
+                isin_idx = len(trade_data) - 1
+                isin_dict[isin] = {'id': isin_idx, 'c': currency}
+            else:
+                isin_idx = isin_dict[isin]['id']
+            
+            # None: 11.115 s, speed: 20.617 MB/s
+            # HSBC: 10.730 s, speed: 21.359 MB/s
+            # Goldman_Sachs: 19.179 s, speed: 11.949 MB/s
+            # UniCredit: 11.708 s, speed: 19.574 MB/s
+
 
             #print (line)
             #idx += 1
@@ -183,6 +204,9 @@ start = timeit.default_timer()
 for grp in groups:
 
     #if grp != None: continue
+    #if grp != 'HSBC': continue
+    #if grp != 'Goldman_Sachs': continue
+    if grp != 'UniCredit': continue
 
     arr = []
     isin_dict = isin_grp_dict[grp]['isin_dict']

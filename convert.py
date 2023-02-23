@@ -189,9 +189,9 @@ def cast_data_pretrade(arr):
 
     # cast to int and float, idx = 0 (timestamp) is already int
     bid = float(arr[3]) #bid
-    bid_size = int(arr[4]) #bid_size
+    bid_size = int(float(arr[4])) #bid_size
     ask = float(arr[5]) #ask
-    ask_size = int(arr[6]) #ask_size
+    ask_size = int(float(arr[6])) #ask_size
 
     if bid > 0 and ask > 0:
         #spread = round(ask - bid, 3)
@@ -885,5 +885,13 @@ if __name__ == '__main__':
 
     #convert_files(path + '/2023-01-30', overwrite)
     #convert_files(path + '/2023-01-31', overwrite)
-    convert_files(path + '/2023-02-01', overwrite)
+    #convert_files(path + '/2023-02-01', overwrite)
+    #convert_files(path + '/2023-02-02', overwrite)
+    #convert_files(path + '/2023-02-03', overwrite)
+
+    convert_files(path + '/2023-02-06')
+    convert_files(path + '/2023-02-07', overwrite)
+    convert_files(path + '/2023-02-08', overwrite)
+    convert_files(path + '/2023-02-09', overwrite)
+    convert_files(path + '/2023-02-10', overwrite)
 

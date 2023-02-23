@@ -56,8 +56,9 @@ for url in files:
 
     output_path += '/' + name
 
-    #check '*.csv.gz' and '*.csv' files, skip if already exist
-    if os.path.isfile(output_path) or os.path.isfile(output_path[0:-3]):
+    # check '*.csv.gz' and '*.csv' files, skip if already exist
+    # must be valid if exists
+    if (os.path.isfile(output_path) and is_valid_gzip(output_path)) or os.path.isfile(output_path[0:-3]):
         print ("SKIP: " + output_path)
         continue 
     
