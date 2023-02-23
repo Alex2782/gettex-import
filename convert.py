@@ -365,13 +365,15 @@ def read_gz_posttrade(path, isin_dict, market_type, group = None, trade_data = [
             isin, tm, seconds, currency, price, amount = cast_data_posttrade(tmp)
             if amount == 0: no_amount_counter +=1
 
+            #TODO clean up code later, same isin-code for posttrade and pretrade
             isin_obj = isin_dict.get(isin)
-            if isin_obj is None: 
+            if isin_obj is not None: 
+                isin_idx = isin_dict[isin]['id']
+            else:
                 trade_data.append([])
                 isin_idx = len(trade_data) - 1
                 isin_dict[isin] = {'id': isin_idx, 'c': currency}
-            else:
-                isin_idx = isin_dict[isin]['id']
+
 
             #DEV-Test
             #if isin == 'US5949181045':
@@ -397,11 +399,13 @@ def read_gz_pretrade(path, isin_dict, market_type, group = None, trade_data = []
     ### Parameters:
     - path: gettex pretrade file, gz format
     - isin_dict: dictionary loaded from isin.pickle
+    - market_type: 'munc' or 'mund' from filename
     - group: if is None, ignore all isin from global dictionary 'ISIN_GROUPS' (file: isin_groups.py)
+    - trade_data: list with posttrade data
 
     ### Returns:
     - dict: isin_dict
-    - list: ret_data
+    - list: trade_data
     """
 
     #print('+' * 60)
@@ -411,7 +415,8 @@ def read_gz_pretrade(path, isin_dict, market_type, group = None, trade_data = []
     ignore_counter = 0
     start = timeit.default_timer()
 
-    #faster dictionary, only id
+    # faster dictionary, only id 
+    #TODO clean up code later, same isin-code for posttrade and pretrade
     search_isin_dict = {}
     for isin in isin_dict:
         search_isin_dict[isin] =  isin_dict[isin]['id']
@@ -437,16 +442,17 @@ def read_gz_pretrade(path, isin_dict, market_type, group = None, trade_data = []
             bNewData = True
             len_data = 0
 
+            #TODO clean up code later, same isin-code for posttrade and pretrade
             #isin_obj = isin_dict.get(isin)
             isin_obj = search_isin_dict.get(isin) #faster
-            if isin_obj is None: 
+            if isin_obj is not None: 
+                #isin_idx = isin_dict[isin]['id']
+                isin_idx = isin_obj #faster
+            else:
                 trade_data.append([])
                 isin_idx = len(trade_data) - 1
                 isin_dict[isin] = {'id': isin_idx, 'c': currency}
                 search_isin_dict[isin] = isin_idx #faster
-            else:
-                #isin_idx = isin_dict[isin]['id']
-                isin_idx = isin_obj #faster
 
             #extra data, no 'bid' or 'ask'
             if len (trade_data[isin_idx]) > 1:

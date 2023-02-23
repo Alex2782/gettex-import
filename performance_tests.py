@@ -20,28 +20,34 @@ print('get_all_isin_groups + get_isin_group_keys: %.2f s' % (stop - start))
 # ------------------------------------------------------------------------------------
 def search_test():
 
+    grp = 'Goldman_Sachs'
+    search = 'DE000GX8ZJS7'
 
-    search = 'DE000HY'
-    #search = 'DE000TT'
+    isin_dict = isin_grp_dict[grp]['isin_dict']
 
-    arr = ['DE000TT', 'DE000HG', 'DE000TB', 'DE000TD', 'DE000TR', 'DE000HE', 'DE000GZ', 'DE000GX', 'DE000GF', 'DE000GK', 'DE000GH', 'DE000GC', 'DE000GB', 'DE000GA', 'DE000GS', 'DE000GM', 'DE000CH', 'DE000HC', 'DE000HB', 'DE000HR', 'DE000HV', 'DE00078', 'DE000HZ', 'DE000HX', 'DE000HW', 'DE000HU', 'DE000HY']
-    arr_set = set(arr)
-    search_dict = {search: None for search in arr}
-    arr_dict = {k: True for k in arr}
+    #faster ...
+    search_isin_dict = {}
+    for isin in isin_dict:
+        search_isin_dict[isin] =  isin_dict[isin]['id']
+    #than this
+    #search_isin_dict = {isin: isin_dict[isin]['id'] for isin in isin_dict}
 
-    isin_dict = {}
-    isin_idx = 0
-    currency = 'EUR'
-    for isin in arr:
-        #isin_dict[isin] = {'id': isin_idx, 'c': currency}
-        #isin_dict[isin] = {'id': isin_idx}
-        isin_dict[isin] = isin_idx
-        isin_idx += 1
+    print (next(iter(search_isin_dict)))
+
 
     start = timeit.default_timer()
-    for x in range(0, 10000000):
-        obj = isin_dict.get(search)
-        if obj: idx = obj #['id']
+    for x in range(0, 30000000):
+        obj = search_isin_dict.get(search)
+        #if obj != None:
+        #     idx = obj
+        #else: 
+        #    idx = None
+
+        if obj is not None:
+            idx = obj
+        else: 
+            idx = None
+
         
     stop = timeit.default_timer()
     print('search_test: %.2f s' % (stop - start), 'idx:', idx)
@@ -151,6 +157,8 @@ def read_gz(path, isin_dict, market_type, group = None, trade_data = []):
     search_isin_dict = {}
     for isin in isin_dict:
         search_isin_dict[isin] =  isin_dict[isin]['id']
+    #slower
+    #search_isin_dict = {isin: isin_dict[isin]['id'] for isin in isin_dict}
 
     if len(trade_data) == 0:
         trade_data = init_trade_data(isin_dict)
@@ -187,14 +195,14 @@ def read_gz(path, isin_dict, market_type, group = None, trade_data = []):
 
             #isin_obj = isin_dict.get(isin)
             isin_obj = search_isin_dict.get(isin)
-            if isin_obj is None: 
+            if isin_obj is not None: 
+                #isin_idx = isin_dict[isin]['id']
+                isin_idx = isin_obj
+            else:
                 trade_data.append([])
                 isin_idx = len(trade_data) - 1
                 isin_dict[isin] = {'id': isin_idx, 'c': currency}
                 search_isin_dict[isin] = isin_idx
-            else:
-                #isin_idx = isin_dict[isin]['id']
-                isin_idx = isin_obj
             
             # isin_dict.get
             # -----------------------------------------
@@ -209,7 +217,15 @@ def read_gz(path, isin_dict, market_type, group = None, trade_data = []):
             # HSBC: 10.191 s, speed: 22.486 MB/s
             # Goldman_Sachs: 17.047 s, speed: 13.443 MB/s
             # UniCredit: 11.294 s, speed: 20.292 MB/s
-            # ALL GROUP -> read gz file: 49.275 s, speed:  4.651 MB/s         
+            # ALL GROUP -> read gz file: 49.275 s, speed:  4.651 MB/s  
+            
+            #search_isin_dict.get + if isin_obj is not None: 
+            # None: 10.742 s, speed: 21.333 MB/s
+            # HSBC: 10.008 s, speed: 22.898 MB/s
+            # Goldman_Sachs: 16.947 s, speed: 13.522 MB/s
+            # UniCredit: 11.272 s, speed: 20.330 MB/s
+            # ALL GROUP -> read gz file: 48.981 s, speed:  4.679 MB/s
+                   
 
             #print (line)
             #idx += 1
