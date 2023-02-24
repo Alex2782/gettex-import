@@ -881,34 +881,4 @@ if __name__ == '__main__':
 
     # HDD
     path = "../data"
-
-    #convert_files(path + '/2023-01-12', overwrite)
-    #convert_files(path + '/2023-01-13', overwrite)
-    #convert_files(path + '/2023-01-16', overwrite)
-
-    #convert_files(path + '/2023-01-17', overwrite)
-    #convert_files(path + '/2023-01-18', overwrite)
-    #convert_files(path + '/2023-01-19', overwrite)
-    #convert_files(path + '/2023-01-20', overwrite)
-
-    #convert_files(path + '/2023-01-23', overwrite)
-    #convert_files(path + '/2023-01-24', overwrite)
-    #convert_files(path + '/2023-01-25', overwrite)
-    #convert_files(path + '/2023-01-26', overwrite)
-    #convert_files(path + '/2023-01-27', overwrite)
-
-    #convert_files(path + '/2023-01-30', overwrite)
-    #convert_files(path + '/2023-01-31', overwrite)
-    #convert_files(path + '/2023-02-01', overwrite)
-    #convert_files(path + '/2023-02-02', overwrite)
-    #convert_files(path + '/2023-02-03', overwrite)
-
-    #convert_files(path + '/2023-02-06')
-    #convert_files(path + '/2023-02-07', overwrite)
-    #convert_files(path + '/2023-02-08', overwrite)
-    #convert_files(path + '/2023-02-09', overwrite)
-    #convert_files(path + '/2023-02-10', overwrite)
-
-    convert_files(path + '/2023-02-13', overwrite)
-    convert_files(path + '/2023-02-14', overwrite)
-
+    convert_files(path + '/2023-02-27')

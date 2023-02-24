@@ -157,6 +157,7 @@ def read_gz(path, isin_dict, market_type, group = None, trade_data = []):
     search_isin_dict = {}
     for isin in isin_dict:
         search_isin_dict[isin] =  isin_dict[isin]['id']
+
     #slower
     #search_isin_dict = {isin: isin_dict[isin]['id'] for isin in isin_dict}
 
@@ -195,6 +196,7 @@ def read_gz(path, isin_dict, market_type, group = None, trade_data = []):
 
             #isin_obj = isin_dict.get(isin)
             isin_obj = search_isin_dict.get(isin)
+
             if isin_obj is not None: 
                 #isin_idx = isin_dict[isin]['id']
                 isin_idx = isin_obj
@@ -212,19 +214,19 @@ def read_gz(path, isin_dict, market_type, group = None, trade_data = []):
             # UniCredit: 11.708 s, speed: 19.574 MB/s
             # ALL GROUP -> read gz file: 52.065 s, speed:  4.402 MB/s
 
-            #search_isin_dict.get
+            # search_isin_dict.get
             # None: 10.731 s, speed: 21.356 MB/s
             # HSBC: 10.191 s, speed: 22.486 MB/s
             # Goldman_Sachs: 17.047 s, speed: 13.443 MB/s
             # UniCredit: 11.294 s, speed: 20.292 MB/s
             # ALL GROUP -> read gz file: 49.275 s, speed:  4.651 MB/s  
             
-            #search_isin_dict.get + if isin_obj is not None: 
-            # None: 10.742 s, speed: 21.333 MB/s
-            # HSBC: 10.008 s, speed: 22.898 MB/s
-            # Goldman_Sachs: 16.947 s, speed: 13.522 MB/s
-            # UniCredit: 11.272 s, speed: 20.330 MB/s
-            # ALL GROUP -> read gz file: 48.981 s, speed:  4.679 MB/s
+            # search_isin_dict.get + if isin_obj is not None: 
+            # None: 10.239 s, speed: 22.382 MB/s
+            # HSBC: 9.598 s, speed: 23.876 MB/s
+            # Goldman_Sachs: 15.965 s, speed: 14.355 MB/s
+            # UniCredit: 10.510 s, speed: 21.805 MB/s
+            # ALL GROUP -> read gz file: 46.027 s, speed:  4.979 MB/s
                    
 
             #print (line)
