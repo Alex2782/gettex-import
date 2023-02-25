@@ -864,8 +864,7 @@ def convert_files(path, overwrite = False, file_mask = None):
     #END for job_name   
 
     stop = timeit.default_timer()
-
-    show_runtime('files converted in', start, stop)
+    if len(files) > 0: show_runtime('files converted in', start, stop)
 
 # ===========================================================================================
 

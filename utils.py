@@ -244,7 +244,10 @@ def is_valid_gzip(path, output_error = True):
 def list_gz_files(path, full_path = False, sub_directories = False, validate = True):
 
     gz_files = []
-    files = os.listdir(path)
+    files = []
+
+    if os.path.exists(path): files = os.listdir(path)
+    else: print ('ERROR: path', path, 'does not exist')
 
     for name in files:
         file_path = path + '/' + name
