@@ -274,30 +274,6 @@ def list_gz_files(path, full_path = False, sub_directories = False, validate = T
     return gz_files
 
 # ------------------------------------------------------------------------------------
-# pretrade_convert_to_numpy
-# TODO notwendig?
-# ------------------------------------------------------------------------------------
-def pretrade_convert_to_numpy(data):
-
-    print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-    print('pretrade_convert_to_numpy')
-
-    start = timeit.default_timer()
-
-    type_struct = [('time', np.uint32), 
-                    ('bid', np.float32), ('bid_size', np.uint32), ('ask', np.float32), ('ask_size', np.uint32)]
-
-    np_arr = {}
-    for key in data:
-        np_arr[key] = np.array(data[key], dtype=type_struct)
-
-    stop = timeit.default_timer()
-    print('created np_arr in: %.2f s' % (stop - start), ', sizeof:', get_sizeof_info(np_arr) )  
-    print('----------------------------------------------------------')  
-
-    return np_arr
-
-# ------------------------------------------------------------------------------------
 # show_runtime
 # ------------------------------------------------------------------------------------
 def show_runtime(label, start, stop):

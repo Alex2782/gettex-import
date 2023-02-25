@@ -114,13 +114,12 @@ def pretrade_debug(path, debug_isin, debug_time = None):
 
     print('pretrade_debug:', path, debug_isin, debug_time)
 
-    total = None #sum(1 for _ in gzip.open(path, 'rb'))
+    total = None
 
     output = []
 
     with gzip.open(path, 'rt') as f:
 
-        #TODO: volatility (long, short, activity)
         last_price = 0
         vola_long = 0
         vola_short = 0
