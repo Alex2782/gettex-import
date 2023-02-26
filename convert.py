@@ -1,5 +1,6 @@
 from utils import *
 from isin_groups import *
+from open_html import *
 
 # ---------------------------------------------------------------------------------
 # get_isin_group_keys
@@ -110,48 +111,83 @@ def get_isin_dict(isin_dict):
 # ------------------------------------------------------------------------------------
 # pretrade_debug
 # ------------------------------------------------------------------------------------
-def pretrade_debug(path, debug_isin, debug_time = None):
+def pretrade_debug(path, debug_isin = None, debug_time = None, output_content = False, 
+                   debug_bid_size = None, debug_ask_size = None, debug_min_price = None, debug_max_price = None):
 
     print('pretrade_debug:', path, debug_isin, debug_time)
 
     total = None
 
     output = []
+    isin_counter = {}
+    file_out = ''
 
     with gzip.open(path, 'rt') as f:
 
-        last_price = 0
-        vola_long = 0
-        vola_short = 0
-
         for line in tqdm(f, total=total, unit=' lines', unit_scale=True):
+            
+            #empty isin
+            if line[0:1] == ',':
+                tmp = line.split(',')
+                line_isin = ''
+                line_time = tmp[1][0:len(debug_time)]
+            else:
+                line_isin = line[0:12]
+                line_time = line[13:13+len(debug_time)]
 
-            tmp = line.split(',')
+            if debug_isin is not None and line_isin != debug_isin: continue
+            if debug_time is not None and line_time != debug_time: continue
 
-            isin, tm, seconds, currency, bid, bid_size, ask, ask_size, spread, price = cast_data_pretrade(tmp)
+            if output_content:
+                output.append (line)
+                if isin_counter.get(line_isin) is None: isin_counter[line_isin] = 0 
+                isin_counter[line_isin] += 1
 
-            if debug_isin == isin or (debug_time is not None and debug_time == timestamp_to_strtime(tm)):
-                
-                if last_price > 0:
-                    vola = price - last_price
-                    if vola > 0: vola_long += vola
-                    elif vola < 0: vola_short += vola
+            else:
+                tmp = line.split(',')
+                isin, tm, seconds, currency, bid, bid_size, ask, ask_size, spread, price = cast_data_pretrade(tmp)
 
-                last_price = price
+                if debug_bid_size is not None and debug_bid_size != bid_size: continue
+                if debug_ask_size is not None and debug_ask_size != ask_size: continue
+                if debug_min_price is not None and debug_min_price > price: continue
+                if debug_max_price is not None and debug_max_price < price: continue
 
-                out = f"{tmp[1]} | {bid:>8.3f} | {bid_size:>8} | {ask:>8.3f} | {ask_size:>8} | {spread:>8.3f} | {price:>8.3f}"
+                out = f"{isin:>15} | {tmp[1]:>15} | {bid:>8.3f} | {bid_size:>8} | {ask:>8.3f} | {ask_size:>8} | {spread:>8.3f} | {price:>8.3f}"
                 output.append (out)
 
         # output ascii table
-        str_format = "{:>15} | {:>8} | {:>8} | {:>8} | {:>8} | {:>8} | {:>8}"
-        print (str_format.format('timestamp', 'bid', 'bid_size', 'ask', 'ask_size', 'spread', 'price'))
-        print ("=" * 81)
+        str_format = "{:>15} | {:>15} | {:>8} | {:>8} | {:>8} | {:>8} | {:>8} | {:>8}"
+        if not output_content:
+            out = str_format.format('isin', 'timestamp', 'bid', 'bid_size', 'ask', 'ask_size', 'spread', 'price')
+            print (out)
+            file_out += out  + "\n"
+
+        print ("=" * 100)
+        file_out += str('=' * 100) + "\n"
 
         for out in output:
             print(out)
+            file_out += out + "\n"
 
-        print ("=" * 81)
-        print ('vola_long:', round(vola_long, 3), 'vola_short:', round(vola_short, 3), 'diff:', round(vola_long+vola_short, 3))
+        print ("=" * 100)
+        file_out += str('=' * 100) + "\n"
+
+        if len(isin_counter) > 0:
+            for isin in isin_counter:
+                out = f'{isin}: {isin_counter[isin]}'
+                print (out)
+                file_out += out + "\n"
+
+
+    out_path = '../pretrade_debug.html'
+    style = '<head><style>body{background-color: #222222; color: #888888}</style></head>'
+
+    f = open(out_path, 'wt')    
+    f.write(style)
+    f.write('<code>{}</code>'.format(file_out.replace('\n', '<br>').replace('  ', '&nbsp;&nbsp;')))
+    f.close()
+    open_file (out_path)
+
 # ------------------------------------------------------------------------------------
 # posttrade_debug
 # ------------------------------------------------------------------------------------
@@ -364,6 +400,9 @@ def read_gz_posttrade(path, isin_dict, market_type, group = None, trade_data = [
             isin, tm, seconds, currency, price, amount = cast_data_posttrade(tmp)
             if amount == 0: no_amount_counter +=1
 
+            #very rare, isin may be blank: line: ,13:55:20.689694,EUR,0.99,150000,1.01,150000
+            #if len(isin) < 12: print(f'ERROR ISIN len < 12: {isin}', 'line:', line) 
+
             #TODO clean up code later, same isin-code for posttrade and pretrade
             isin_obj = isin_dict.get(isin)
             if isin_obj is not None: 
@@ -436,6 +475,9 @@ def read_gz_pretrade(path, isin_dict, market_type, group = None, trade_data = []
             tmp = line.split(',')
 
             isin, tm, seconds, currency, bid, bid_size, ask, ask_size, spread, price = cast_data_pretrade(tmp)
+
+            #very rare, isin may be blank: line: ,13:55:20.689694,EUR,0.99,150000,1.01,150000
+            #if len(isin) < 12: print(f'ERROR ISIN len < 12: {isin}', 'line:', line) 
 
             trade = True
             bNewData = True
@@ -879,4 +921,10 @@ if __name__ == '__main__':
 
     # HDD
     path = "../data"
-    convert_files(path + '/2023-02-27')
+
+    file_mask = '20230214.14.00'
+    convert_files(path + '/2023-02-14', overwrite, file_mask)
+
+    #convert_files(path + '/2023-02-27')
+
+

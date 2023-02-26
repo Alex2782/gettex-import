@@ -1,6 +1,6 @@
 import time
 import random
-from convert import load_isin_dict, get_all_isin_groups, get_isin_group_keys
+from convert import get_all_isin_groups, get_isin_group_keys
 from utils import *
 from open_html import *
 from validate_isin import *
@@ -108,6 +108,7 @@ def show_isin_stats():
     for grp_name in groups:  
 
         isin_dict = isin_grp_dict[grp_name]['isin_dict']
+        isin_dict_idx = isin_grp_dict[grp_name]['isin_dict_idx']
         print(grp_name, 'len:', len(isin_dict))
 
         isin_group[grp_name] = {}
@@ -118,7 +119,7 @@ def show_isin_stats():
         for isin in isin_dict:
 
             valid_isin = validate_isin(isin)
-            if not valid_isin: invalid_isin_list.append(isin)
+            if not valid_isin: invalid_isin_list.append((grp_name, isin, isin_dict[isin]))
 
             country = isin[0:2]
             currency = isin_dict[isin]['c']

@@ -273,6 +273,37 @@ def list_gz_files(path, full_path = False, sub_directories = False, validate = T
 
     return gz_files
 
+
+
+# ------------------------------------------------------------------------------------
+# list_zip_files
+# ------------------------------------------------------------------------------------
+def list_zip_files(path, full_path = False, sub_directories = False):
+
+    zip_files = []
+    files = []
+
+    if os.path.exists(path): files = os.listdir(path)
+    else: print ('ERROR: path', path, 'does not exist')
+
+
+    for name in files:
+        file_path = path + '/' + name
+
+        if sub_directories and os.path.isdir(file_path):
+            # search sub-directories
+            sub_files = os.listdir(file_path)
+            for sub_name in sub_files:
+                if sub_name[-4:] == '.zip': 
+                    if full_path: zip_files.append(file_path + '/' + sub_name)
+                    else: zip_files.append(name + '/' + sub_name)
+        else:
+            if name[-4:] == '.zip': 
+                if full_path: zip_files.append(file_path)
+                else: zip_files.append(name)
+
+    return zip_files
+
 # ------------------------------------------------------------------------------------
 # show_runtime
 # ------------------------------------------------------------------------------------
