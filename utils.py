@@ -266,7 +266,7 @@ def list_gz_files(path, full_path = False, sub_directories = False, validate = T
             # check if current file is '.gz'
             if name[-3:] == '.gz': 
                 add = True
-                if validate and is_valid_gzip(file_path): add = False
+                if validate and not is_valid_gzip(file_path): add = False
                 if add:
                     if full_path: gz_files.append(file_path)
                     else: gz_files.append(name)

@@ -86,3 +86,7 @@ validate_files(path)
 #print (trade[28545])
 #print (timestamp_to_strtime(trade[28545][0][0][0]), pretrade_list_to_dict(trade[28545][0][0]))
 #pretrade_debug('../data/2023-02-14/pretrade.20230214.14.00.mund.csv.gz', None, '13:55:20.6896', False)
+
+
+#TODO performance check
+path = "../data_ssd"
