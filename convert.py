@@ -1,3 +1,4 @@
+import datetime
 from utils import *
 from isin_groups import *
 from open_html import *
@@ -921,13 +922,12 @@ if __name__ == '__main__':
 
     # HDD
     path = "../data"
+    sub_path = today = datetime.date.today().strftime('%Y-%m-%d')
+    convert_files(path + '/' + sub_path)
+
 
     #file_mask = '20230214.14.00'
     #convert_files(path + '/2023-02-14', overwrite, file_mask)
 
-    convert_files(path + '/2023-02-27')
-
-    #file_path = path + '/2023-02-27/pretrade.20230227.08.15.mund.csv.gz'
-    #print (file_path, is_valid_gzip(file_path)) 
 
 

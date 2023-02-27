@@ -9,10 +9,11 @@ import time
 def validate_files(path, validate_gz = False, validate_empty_isin = False):
 
     print ("validate_files, path:", path)
-    start = timeit.default_timer()
 
     isin_grp_dict = get_all_isin_groups()
     groups = get_isin_group_keys()
+
+    start = timeit.default_timer()
 
     # validate gzip files
     if validate_gz:
@@ -79,9 +80,10 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False):
 #
 #print('invalid_gz_files:', invalid_gz_files)
 
+sub_path = '/2023-02-14'
+
 path = '../data'
-path = '../data/2023-02-14'
-validate_files(path)
+validate_files(path + sub_path)
 #trade = load_from_pickle('../data/2023-02-14/trade.20230214.14.00.pickle.zip')
 #print (trade[28545])
 #print (timestamp_to_strtime(trade[28545][0][0][0]), pretrade_list_to_dict(trade[28545][0][0]))
@@ -90,3 +92,5 @@ validate_files(path)
 
 #TODO performance check
 path = "../data_ssd"
+validate_files(path + sub_path)
+
