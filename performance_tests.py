@@ -187,6 +187,9 @@ def read_gz(path, isin_dict, market_type, group = None, trade_data = []):
             #nach 'split' und 'cast' mit 'round' ALL GROUP: 52.742 s, speed:  4.345 MB/s
             # ---->                 ohne 'round' ALL GROUP: 46.502 s, speed:  4.928 MB/s
 
+            trade = True
+            bNewData = True
+            len_data = 0
 
             # None: 10.029 s, speed: 22.852 MB/s
             # HSBC: 9.403 s, speed: 24.373 MB/s
@@ -227,7 +230,68 @@ def read_gz(path, isin_dict, market_type, group = None, trade_data = []):
             # Goldman_Sachs: 15.965 s, speed: 14.355 MB/s
             # UniCredit: 10.510 s, speed: 21.805 MB/s
             # ALL GROUP -> read gz file: 46.027 s, speed:  4.979 MB/s
-                   
+
+            #extra data, no 'bid' or 'ask'
+            if len (trade_data[isin_idx]) > 1:
+                #print(trade_data[isin_idx])
+                if bid == 0 or bid_size == 0: trade_data[isin_idx][1][5] += 1
+                if ask == 0 or ask_size == 0: trade_data[isin_idx][1][6] += 1       
+
+
+            if bid == 0 and ask == 0 and bid_size == 0 and ask_size == 0: 
+                continue #ignore 0 values
+                #trade = False  
+                #bNewData = False
+
+            data = [tm,  bid_size,bid_size,  ask_size,ask_size,  spread,spread,  price,price,price,price,  1,  0,0,  0,0,1] 
+
+            if trade:
+
+                init_trade_sub_lists(trade_data[isin_idx])
+
+                len_data = len(trade_data[isin_idx])
+                if len_data == 3: #init posttrade bid / ask
+                    init_posttrade_bid_ask(trade_data[isin_idx][2], tm, seconds, bid, ask)
+
+                #extra data / summary
+                tmp_open = trade_data[isin_idx][1][1]
+                tmp_high = trade_data[isin_idx][1][2]
+                tmp_low = trade_data[isin_idx][1][3]
+
+                trade_data[isin_idx][1][0] += 1 #counter
+                if tmp_open  == 0: trade_data[isin_idx][1][1] = price #open
+                if price > tmp_high: trade_data[isin_idx][1][2] = price #high
+                if price < tmp_low or tmp_low == 0: trade_data[isin_idx][1][3] = price #low
+                trade_data[isin_idx][1][4] = price #close
+
+                # open / close / high / low
+                #ALL GROUP -> read gz file: 67.098 s, speed:  3.415 MB/s
+                # without open / close / high / low
+                #ALL GROUP -> read gz file: 64.920 s, speed:  3.530 MB/s
+
+
+                #init bid / ask vola
+                # #9 = bid_long, #10 = bid_short, #11 = ask_long, #12 = ask_short, #13 = tmp_last_bid, #14 = tmp_last_ask 
+                tmp_last_bid = trade_data[isin_idx][1][13]
+                tmp_last_ask = trade_data[isin_idx][1][14]
+
+                bid_vola = 0
+                ask_vola = 0
+
+                if tmp_last_bid > 0: bid_vola = bid - tmp_last_bid
+                if tmp_last_ask > 0: ask_vola = ask - tmp_last_ask
+
+                if bid_vola > 0: trade_data[isin_idx][1][9] += bid_vola # bid_long
+                elif bid_vola < 0: trade_data[isin_idx][1][10] += bid_vola # bid_short
+                
+                if ask_vola > 0: trade_data[isin_idx][1][11] += ask_vola # bid_long
+                elif ask_vola < 0: trade_data[isin_idx][1][12] += ask_vola # bid_short
+
+                trade_data[isin_idx][1][13] = bid
+                trade_data[isin_idx][1][14] = ask
+
+
+                len_data = len(trade_data[isin_idx][0])
 
             #print (line)
             #idx += 1
@@ -260,6 +324,13 @@ for grp in groups:
     isin_dict_idx = isin_grp_dict[grp]['isin_dict_idx']
 
     read_gz(path,isin_dict, market_type, grp, arr)
+
+    # DEV-TEST empty files
+    #trade_data = init_trade_data(isin_dict)
+    #data_file = '../' + f'empty_test.{grp}.pickle.zip'
+    #save_as_pickle(data_file, trade_data)
+    #tmp_data = load_from_pickle(data_file)
+    #print (data_file, ' len:', len(tmp_data))
 
 stop = timeit.default_timer()
 runtime = stop-start

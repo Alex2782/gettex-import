@@ -532,7 +532,7 @@ def read_gz_pretrade(path, isin_dict, market_type, group = None, trade_data = []
                 tmp_low = trade_data[isin_idx][1][3]
 
                 trade_data[isin_idx][1][0] += 1 #counter
-                if tmp_open  == 0: trade_data[isin_idx][1][1] = price #high
+                if tmp_open  == 0: trade_data[isin_idx][1][1] = price #open
                 if price > tmp_high: trade_data[isin_idx][1][2] = price #high
                 if price < tmp_low or tmp_low == 0: trade_data[isin_idx][1][3] = price #low
                 trade_data[isin_idx][1][4] = price #close

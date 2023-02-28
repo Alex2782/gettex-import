@@ -91,6 +91,6 @@ validate_files(path + sub_path)
 
 
 #TODO performance check
-path = "../data_ssd"
-validate_files(path + sub_path)
+#path = "../data_ssd"
+#validate_files(path + sub_path)
 
