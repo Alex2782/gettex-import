@@ -30,8 +30,9 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False):
     
     sum_volume = 0
     sum_size = 0
+    sum_counter = 0
 
-    print ('VALIDATE posttrade')
+    print ('VALIDATE pretrade / posttrade')
     for filepath in tqdm(files, unit=' files', unit_scale=True):
         name = os.path.basename(filepath)
         
@@ -45,8 +46,17 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False):
                     sum_volume += price * amount
                     sum_size += amount
 
-        elif tmp[0] == 'pretrade':
-            pass
+        elif False and tmp[0] == 'pretrade':
+            with gzip.open(filepath, 'rt') as f:
+                for line in f:
+                    tmp = line.split(',')
+                    isin, tm, seconds, currency, bid, bid_size, ask, ask_size, spread, price = cast_data_pretrade(tmp)
+                    
+                    if bid == 0 and ask == 0 and bid_size == 0 and ask_size == 0: 
+                        continue #ignore 0 values
+
+                    sum_counter += 1
+            
 
 
     
@@ -63,7 +73,7 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False):
 
         print ('GROUP:', grp)
 
-        if volume_grp_stats.get(grp) is None: volume_grp_stats[grp] = {'volume': 0, 'size': 0}
+        if volume_grp_stats.get(grp) is None: volume_grp_stats[grp] = {'volume': 0, 'size': 0, 'counter': 0}
 
         if validate_empty_isin:
             empty_isin = isin_dict.get('')
@@ -87,6 +97,9 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False):
 
             for data in trade:
 
+                if len(data) > 1:
+                    volume_grp_stats[grp]['counter'] += data[1][0] #extra data, activity counter
+
                 if len(data) == 3 and len (data[2]) > 0:
                     post = data[2]
 
@@ -108,19 +121,28 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False):
 
     sum_grp_volume = 0
     sum_grp_size = 0
+    sum_grp_counter = 0
+
     for grp in volume_grp_stats:
         volume = volume_grp_stats[grp]['volume']
         size = volume_grp_stats[grp]['size']
-        print ('GROUP VOLUME: ', grp, f'{volume: .3f}, size: {size} ')
+        counter = volume_grp_stats[grp]['counter'];
+        print ('GROUP VOLUME: ', grp, f'{volume: .3f}, size: {size}, pretrade-counter: {counter} ')
         sum_grp_volume += volume
         sum_grp_size += size
+        sum_grp_counter += counter
+
+    #pretrade counter: 1145064519 
 
     print ('-' * 60)
-    print (f'SUM GROUP VOLUME    : {sum_grp_volume: .3f}, size: {sum_grp_size} ')
-    print (f'SUM POSTTRADE VOLUME: {sum_volume: .3f}, size: {sum_size} ')
+    print (f'SUM GROUP TRADES        : volume: {sum_grp_volume: .3f}, size: {sum_grp_size}, counter: {sum_grp_counter} ')
+    print (f'SUM POSTTRADE / PRETRADE: volume: {sum_volume: .3f}, size: {sum_size}, counter: {sum_counter} ')
 
     if round(sum_grp_volume, 3) == round(sum_volume, 3) and sum_grp_size == sum_size:
         print('VOLUME DATA: OK !')  
+
+    if sum_grp_counter == sum_counter:
+        print('PRETRADE COUNTER: OK !')  
 
     stop = timeit.default_timer()
     show_runtime('files was checked in', start, stop)
