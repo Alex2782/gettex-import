@@ -327,6 +327,8 @@ for grp in groups:
 
     # DEV-TEST empty files
     #trade_data = init_trade_data(isin_dict)
+    #for x in range (0, len(isin_dict)):
+    #    init_trade_sub_lists(trade_data[x])
     #data_file = '../' + f'empty_test.{grp}.pickle.zip'
     #save_as_pickle(data_file, trade_data)
     #tmp_data = load_from_pickle(data_file)

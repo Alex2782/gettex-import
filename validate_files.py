@@ -1,6 +1,6 @@
 from utils import *
 from isin_groups import *
-from convert import get_all_isin_groups, get_isin_group_keys, pretrade_debug, pretrade_list_to_dict
+from convert import *
 import time
 
 # ------------------------------------------------------------------------------------
@@ -15,10 +15,11 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False):
 
     start = timeit.default_timer()
 
+    files = list_gz_files(path, True, True, False)
+
     # validate gzip files
     if validate_gz:
-        files = list_gz_files(path, True, True, False)
-
+        print ('VALIDATE gzip')
         invalid_gz_files = []
 
         for filepath in tqdm(files, unit=' files', unit_scale=True):
@@ -26,10 +27,34 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False):
 
         print('invalid_gz_files len:', len(invalid_gz_files))
         pass
+    
+    sum_volume = 0
+    sum_size = 0
 
+    print ('VALIDATE posttrade')
+    for filepath in tqdm(files, unit=' files', unit_scale=True):
+        name = os.path.basename(filepath)
+        
+        tmp = name.split('.', 1)
+        
+        if tmp[0] == 'posttrade':
+            with gzip.open(filepath, 'rt') as f:
+                for line in f:
+                    tmp = line.split(',')
+                    isin, tm, seconds, currency, price, amount = cast_data_posttrade(tmp)
+                    sum_volume += price * amount
+                    sum_size += amount
+
+        elif tmp[0] == 'pretrade':
+            pass
+
+
+    
 
     files = list_zip_files(path, True, True)
     out_list = []
+
+    volume_grp_stats = {}
 
     for grp in groups:
 
@@ -37,6 +62,8 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False):
         isin_dict_idx = isin_grp_dict[grp]['isin_dict_idx']
 
         print ('GROUP:', grp)
+
+        if volume_grp_stats.get(grp) is None: volume_grp_stats[grp] = {'volume': 0, 'size': 0}
 
         if validate_empty_isin:
             empty_isin = isin_dict.get('')
@@ -57,6 +84,17 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False):
 
             trade = load_from_pickle(filepath)
 
+
+            for data in trade:
+
+                if len(data) == 3 and len (data[2]) > 0:
+                    post = data[2]
+
+                    for p in post:
+                        volume_grp_stats[grp]['volume'] += p[2] * p[3]
+                        volume_grp_stats[grp]['size'] += p[3] 
+
+
             if validate_empty_isin:
                 if 0 <= empty_isin_idx < len(trade) and len(trade[empty_isin_idx]):
                     out_list.append(f'{filepath}\n-->trade: {trade[empty_isin_idx]}')
@@ -67,6 +105,22 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False):
     #debug output
     for line in out_list:
         print (line)
+
+    sum_grp_volume = 0
+    sum_grp_size = 0
+    for grp in volume_grp_stats:
+        volume = volume_grp_stats[grp]['volume']
+        size = volume_grp_stats[grp]['size']
+        print ('GROUP VOLUME: ', grp, f'{volume: .3f}, size: {size} ')
+        sum_grp_volume += volume
+        sum_grp_size += size
+
+    print ('-' * 60)
+    print (f'SUM GROUP VOLUME    : {sum_grp_volume: .3f}, size: {sum_grp_size} ')
+    print (f'SUM POSTTRADE VOLUME: {sum_volume: .3f}, size: {sum_size} ')
+
+    if round(sum_grp_volume, 3) == round(sum_volume, 3) and sum_grp_size == sum_size:
+        print('VOLUME DATA: OK !')  
 
     stop = timeit.default_timer()
     show_runtime('files was checked in', start, stop)
