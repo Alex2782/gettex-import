@@ -314,8 +314,8 @@ def show_runtime(label, start, stop):
     if runtime < 120: 
         str_runtime  = label + ': %.2f s' % runtime
     else:
-        runtime = round(runtime / 60)
-        str_runtime = label + ' ' + timestamp_to_strtime(runtime) + '(HH:MM) -> %.2f s' % runtime
+        runtime_minutes = round(runtime / 60)
+        seconds = runtime % 60
+        str_runtime = label + ' ' + timestamp_to_strtime(runtime_minutes, seconds) + ' (HH:MM:SS.ms)'
     
     print(str_runtime)
-
