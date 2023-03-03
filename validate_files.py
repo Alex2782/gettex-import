@@ -132,8 +132,6 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False):
         sum_grp_size += size
         sum_grp_counter += counter
 
-    #pretrade counter: 1145064519 
-
     print ('-' * 60)
     print (f'SUM GROUP TRADES        : volume: {sum_grp_volume: .3f}, size: {sum_grp_size}, counter: {sum_grp_counter} ')
     print (f'SUM POSTTRADE / PRETRADE: volume: {sum_volume: .3f}, size: {sum_size}, counter: {sum_counter} ')

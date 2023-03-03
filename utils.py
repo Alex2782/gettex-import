@@ -308,12 +308,14 @@ def list_zip_files(path, full_path = False, sub_directories = False):
 # show_runtime
 # ------------------------------------------------------------------------------------
 def show_runtime(label, start, stop):
+
     runtime = stop - start
-    if runtime < 600: 
+    
+    if runtime < 120: 
         str_runtime  = label + ': %.2f s' % runtime
     else:
         runtime = round(runtime / 60)
-        str_runtime = label + ' ' + timestamp_to_strtime(runtime) + '(HH:MM) -> %.2f s' % (stop - start)
+        str_runtime = label + ' ' + timestamp_to_strtime(runtime) + '(HH:MM) -> %.2f s' % runtime
     
     print(str_runtime)
 
