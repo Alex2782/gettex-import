@@ -46,7 +46,7 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False):
                     sum_volume += price * amount
                     sum_size += amount
 
-        elif False and tmp[0] == 'pretrade':
+        elif tmp[0] == 'pretrade':
             with gzip.open(filepath, 'rt') as f:
                 for line in f:
                     tmp = line.split(',')
@@ -57,10 +57,6 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False):
 
                     sum_counter += 1
             
-
-
-    
-
     files = list_zip_files(path, True, True)
     out_list = []
 
@@ -154,7 +150,7 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False):
 #
 #print('invalid_gz_files:', invalid_gz_files)
 
-sub_path = '/2023-02-14'
+sub_path = '/2023-02-16'
 
 path = '../data'
 validate_files(path + sub_path)

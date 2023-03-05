@@ -1,9 +1,10 @@
 import time
 import random
-from convert import get_all_isin_groups, get_isin_group_keys
+from convert import *
 from utils import *
 from open_html import *
 from validate_isin import *
+from html_reports import *
 
 # ------------------------------------------------------------------------------------
 # get_onvista_data
@@ -180,80 +181,47 @@ def show_isin_stats():
     return isin_group
 
 
+
 # ------------------------------------------------------------------------------------
-# isin_group_html_output
+# get_munc_isin
 # ------------------------------------------------------------------------------------
-def isin_group_html_output(isin_group):
+def save_munc_isin_dict(out_path):
 
-    out_path = '../isin.group.html'
+    isin_set = set()
+    files = list_gz_files('../data', True, True, False)
 
-    styles = '<head><style>' \
-            'body {background-color: #222222; color: #888888; font-family: "Lucida Console", "Courier New", "DejaVu Sans Mono", monospace;}' \
-            'hr {border: 2px solid #444444}' \
-            'table, td, th {border:1px solid #333333; border-collapse: collapse;}' \
-            'td, th {padding-right:20px; padding:3px}' \
-            'a {color: #8888aa}' \
-            '</style></head>'
+    for filepath in tqdm(files, total=None, unit=' files', unit_scale=True):
+        name = os.path.basename(filepath)
+        tmp = name.split('.', 5)
 
-    script = ''
+        if tmp[4] != 'munc': continue
 
-    html = ''
+        try:
+            with gzip.open(filepath, 'rt') as f:
+                for line in f:
+                    isin_set.add(line[0:12])
+        except Exception as e:
+            #print('ERROR:', e)
+            pass
+    
+    print ('munc isin:', isin_set, 'len: ', len(isin_set))
 
-    for group_name in isin_group:
+    munc_isin_dict = {}
+    for isin in isin_set:
+        time.sleep(2)
+        print ('GET isin:', isin)
+        if munc_isin_dict.get(isin) is None: munc_isin_dict[isin] = []
+        munc_isin_dict[isin].append(get_onvista_data(isin))
+        pass
 
-        print('group_name:', group_name)
-        print('-' * 60)
-        html += f'<h1> {group_name} </h1>'
-
-        for grp in isin_group[group_name]:
-            
-            data = isin_group[group_name][grp]
-            count = data['count']
-            isin = data['isin']
-
-            out_detail_stats = f'<h3> {grp}: {count} </h3>'
-
-            #types -> list of [{'isin': isin, 'issuer_name':issuer_name, 'entityType': entityType, 'entitySubType': entitySubType}]
-            types = data.get('types')
-            types_len = None
-            if types is not None: types_len = len(types)
-
-            print(f'grp: {grp}, count: {count:>8}, types-len: {types_len}')
-
-            html += f'<h3>{grp}: {count}</h3>'
-
-            if types is not None:
-                html += '<table> <th>isin_type</th> <th>issuer_name</th> <th>entityType</th> <th>entitySubType</th> '
-                for isin_type in types:
-
-                    isin = isin_type['isin']
-                    issuer_name = isin_type['issuer_name']
-                    entityType = isin_type['entityType']
-                    entitySubType = isin_type['entitySubType']
-
-                    link = isin
-                    if entityType == 'STOCK': link = f'<a href="https://www.onvista.de/aktien/{isin}" target="_blank">{isin}</a>'
-
-                    html += f'<tr> <td>{link}</td> <td>{issuer_name}</td> <td>{entityType}</td> <td>{entitySubType}</td> </tr>'
-
-                html += '</table>'
-
-        html += '<hr>'
-
-
-
-    f = open(out_path, 'wt')    
-    f.write(styles)
-    f.write(html)
-    f.write(script)
-    f.close()
-    open_file (out_path)
-
-
+    save_as_pickle(out_path, munc_isin_dict)
+    
 # ==================================================================
 
-path = '../isin.stats.pickle.zip'
-isin_group = show_isin_stats()
+#save_munc_isin_dict('../munc.isin.pickle.zip')
+
+#path = '../isin.stats.pickle.zip'
+#isin_group = show_isin_stats()
 
 #init_request()
 #isin_group = check_isin_groups(isin_group)
