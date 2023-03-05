@@ -6,7 +6,7 @@ import time
 # ------------------------------------------------------------------------------------
 # validate_files
 # ------------------------------------------------------------------------------------
-def validate_files(path, validate_gz = False, validate_empty_isin = False):
+def validate_files(path, validate_gz = False, validate_empty_isin = False, validate_pretrade = False):
 
     print ("validate_files, path:", path)
 
@@ -46,7 +46,7 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False):
                     sum_volume += price * amount
                     sum_size += amount
 
-        elif tmp[0] == 'pretrade':
+        elif validate_pretrade and tmp[0] == 'pretrade':
             with gzip.open(filepath, 'rt') as f:
                 for line in f:
                     tmp = line.split(',')
@@ -123,14 +123,20 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False):
         volume = volume_grp_stats[grp]['volume']
         size = volume_grp_stats[grp]['size']
         counter = volume_grp_stats[grp]['counter'];
-        print ('GROUP VOLUME: ', grp, f'{volume: .3f}, size: {size}, pretrade-counter: {counter} ')
+        print (f'GROUP VOLUME: {str(grp):>15} {volume:>15.3f}, size: {size:>12}, pretrade-counter: {counter:>12} ')
         sum_grp_volume += volume
         sum_grp_size += size
         sum_grp_counter += counter
 
     print ('-' * 60)
-    print (f'SUM GROUP TRADES        : volume: {sum_grp_volume: .3f}, size: {sum_grp_size}, counter: {sum_grp_counter} ')
-    print (f'SUM POSTTRADE / PRETRADE: volume: {sum_volume: .3f}, size: {sum_size}, counter: {sum_counter} ')
+
+    out = f'SUM GROUP TRADES        : volume: {sum_grp_volume: .3f}, size: {sum_grp_size}'
+    if validate_pretrade: out += f', counter: {sum_grp_counter}'
+    print (out)
+
+    out = f'SUM POSTTRADE / PRETRADE: volume: {sum_volume: .3f}, size: {sum_size}'
+    if validate_pretrade: out += f', counter: {sum_counter}'
+    print (out)
 
     if round(sum_grp_volume, 3) == round(sum_volume, 3) and sum_grp_size == sum_size:
         print('VOLUME DATA: OK !')  
