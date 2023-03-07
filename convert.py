@@ -372,8 +372,7 @@ def isin_skip(tmp_isin_grp, check_ignore, isin_group, ignore_isin):
 # ------------------------------------------------------------------------------------
 def read_gz_posttrade(path, isin_dict, market_type, group = None, trade_data = []):
 
-    #print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-    print('read_gz_posttrade:', path, ', file size:', get_file_sizeinfo(path), ', group:', group)
+    print(f'GROUP: {group:>15}, FILE SIZE: {get_file_sizeinfo(path):>12}, PATH: {path}')
 
     isin_group, ignore_isin, check_ignore = get_isin_groups_and_ignore_list(group)
     ignore_counter = 0
@@ -397,9 +396,6 @@ def read_gz_posttrade(path, isin_dict, market_type, group = None, trade_data = [
             isin, tm, seconds, currency, price, amount = cast_data_posttrade(tmp)
             if amount == 0: no_amount_counter +=1
 
-            #very rare, isin may be blank: line: ,13:55:20.689694,EUR,0.99,150000,1.01,150000
-            #if len(isin) < 12: print(f'ERROR ISIN len < 12: {isin}', 'line:', line) 
-
             #TODO clean up code later, same isin-code for posttrade and pretrade
             isin_obj = isin_dict.get(isin)
             if isin_obj is not None: 
@@ -409,11 +405,6 @@ def read_gz_posttrade(path, isin_dict, market_type, group = None, trade_data = [
                 isin_idx = len(trade_data) - 1
                 isin_dict[isin] = {'id': isin_idx, 'c': currency}
 
-
-            #DEV-Test
-            #if isin == 'US5949181045':
-            #    print(isin, timestamp_to_strtime(tm), price, amount)
-
             init_trade_sub_lists(trade_data[isin_idx])
 
             if price == 0 or amount == 0:
@@ -421,8 +412,6 @@ def read_gz_posttrade(path, isin_dict, market_type, group = None, trade_data = [
             else:
                 trade_data[isin_idx][2].append([tm, seconds, price, amount, 0]) #idx(5) -> 0 = unknown, 1 = bid, 2 = ask
 
-    #print('pretrade_data len:', len(trade_data), ', no_amount_counter:', no_amount_counter)
-    #print('----------------------------------------------------------')
 
     return isin_dict, trade_data
 
@@ -443,12 +432,10 @@ def read_gz_pretrade(path, isin_dict, market_type, group = None, trade_data = []
     - list: trade_data
     """
 
-    #print('+' * 60)
-    print('read_gz_pretrade:', path, ', file size:', get_file_sizeinfo(path), ', group:', group)
+    print(f'GROUP: {group:>15}, FILE SIZE: {get_file_sizeinfo(path):>12}, PATH: {path}')
 
     isin_group, ignore_isin, check_ignore = get_isin_groups_and_ignore_list(group)
     ignore_counter = 0
-    start = timeit.default_timer()
 
     # faster dictionary, only id 
     #TODO clean up code later, same isin-code for posttrade and pretrade
@@ -612,12 +599,6 @@ def read_gz_pretrade(path, isin_dict, market_type, group = None, trade_data = []
                 trade_data[isin_idx][0].append(data) #row data
                 
         #END for
-
-    stop = timeit.default_timer()
-
-    #print('created ret_data in: %.2f s' % (stop - start), ', sizeof:', get_sizeof_info(trade_data) )
-    #print('ignore_counter:', ignore_counter)
-    #print('-' * 60)
 
     return isin_dict, trade_data
 
