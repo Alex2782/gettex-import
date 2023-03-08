@@ -1,5 +1,82 @@
 from convert import *
 from open_html import *
+import locale
+
+
+# ------------------------------------------------------------------------------------
+# analyze_volume
+# ------------------------------------------------------------------------------------
+def analyze_volume(path):
+
+    print ("analyze_volume, path:", path)
+
+    #locale.setlocale(locale.LC_ALL, '')
+    locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
+
+    isin_grp_dict = get_all_isin_groups()
+    groups = get_isin_group_keys()
+
+    start = timeit.default_timer()
+
+    files = list_zip_files(path, True, True)
+
+    isin_volume_grp_stats = {}
+
+    for grp in groups:
+
+        isin_dict = isin_grp_dict[grp]['isin_dict']
+        isin_dict_idx = isin_grp_dict[grp]['isin_dict_idx']
+
+        print ('GROUP:', grp)
+
+        if isin_volume_grp_stats.get(grp) is None: isin_volume_grp_stats[grp] = {}
+
+        for filepath in tqdm(files, unit=' files', unit_scale=True):
+            
+            basename = os.path.basename(filepath)
+            tmp = basename.split('.')
+
+            file_date = tmp[1]
+            file_grp = tmp[4]
+            
+            if file_grp == 'pickle': file_grp = None
+            if grp != file_grp: continue
+
+            trade = load_from_pickle(filepath)
+
+            isin_idx = 0
+            for data in trade:
+
+                isin = isin_dict_idx[isin_idx]
+                isin_idx += 1
+
+                if len(data) == 3 and len (data[2]) > 0:
+
+                    if isin_volume_grp_stats[grp].get(isin) is None: isin_volume_grp_stats[grp][isin] = 0
+
+                    post = data[2]
+
+                    for p in post:
+                        isin_volume_grp_stats[grp][isin] += p[2] * p[3]
+                    
+        #END for filepath
+
+        # reverse sorting, output top 25
+        isin_volume_grp_stats[grp] = sorted(isin_volume_grp_stats[grp].items(), key=lambda x: x[1], reverse=True)
+
+        for isin, volume in isin_volume_grp_stats[grp][:25]:
+            formatted_volume = locale.format_string("%20.2f", volume, True, True)
+            currency = isin_dict[isin]['c']
+            formatted_volume += ' ' + currency
+
+            print (f'{isin}: {formatted_volume}')
+        print ('-' * 20)
+
+
+    stop = timeit.default_timer()
+    show_runtime('volume analyzed in', start, stop)
+
+    pass
 
 # ------------------------------------------------------------------------------------
 # analyze_activity
@@ -308,6 +385,13 @@ def analyze_len_data(file, group, max_open_price = 3):
 #================================================================================================
 
 
+path = '../data/2023-03-07/'
+analyze_volume(path)
+#TODO check 'DE000HB6HPZ6:         1.497.253,44 EUR'  
+#https://www.onvista.de/derivate/Optionsscheine/223755554-HB6HPZ-DE000HB6HPZ6
+
+
+exit()
 #TODO: genauer überprüfen, Zusammenfassung möglich?
 
 #path = "../data/2023-02-03/trade.20230203.11.15"

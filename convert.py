@@ -70,7 +70,7 @@ def load_isin_dict(group = None):
     if not '_ISIN_SIZE_START' in globals(): _ISIN_SIZE_START = {}
 
     path = get_isin_path(group)
-    print(f'load_isin_dict: {path:<30}, file size: {get_file_sizeinfo(path):>10}')
+    print(f'load_isin_dict: {path:<33}     file size: {get_file_sizeinfo(path):>10}')
 
     isin_dict = {}
 
@@ -83,7 +83,7 @@ def load_isin_dict(group = None):
     _ISIN_SIZE_START[group] = len(isin_dict)
 
     stop = timeit.default_timer()
-    print(f'loaded isin_dict in: {(stop - start):>6.2f} s, len: {_ISIN_SIZE_START.get(group):>10}, sizeof: {get_sizeof_info(isin_dict):>10}') 
+    print(f'loaded isin_dict in: {(stop - start):>6.2f} s          len: {_ISIN_SIZE_START.get(group):>8}     sizeof: {get_sizeof_info(isin_dict):>10}') 
 
     # isin_dict_idx
     isin_dict_idx = get_isin_dict(isin_dict)
