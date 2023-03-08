@@ -372,7 +372,7 @@ def isin_skip(tmp_isin_grp, check_ignore, isin_group, ignore_isin):
 # ------------------------------------------------------------------------------------
 def read_gz_posttrade(path, isin_dict, market_type, group = None, trade_data = []):
 
-    print(f'GROUP: {group:>15}, FILE SIZE: {get_file_sizeinfo(path):>12}, PATH: {path}')
+    print(f'GROUP: {str(group):15}, FILE SIZE: {get_file_sizeinfo(path):>12}, PATH: {path}')
 
     isin_group, ignore_isin, check_ignore = get_isin_groups_and_ignore_list(group)
     ignore_counter = 0
@@ -432,7 +432,7 @@ def read_gz_pretrade(path, isin_dict, market_type, group = None, trade_data = []
     - list: trade_data
     """
 
-    print(f'GROUP: {group:>15}, FILE SIZE: {get_file_sizeinfo(path):>12}, PATH: {path}')
+    print(f'GROUP: {str(group):15}, FILE SIZE: {get_file_sizeinfo(path):>12}, PATH: {path}')
 
     isin_group, ignore_isin, check_ignore = get_isin_groups_and_ignore_list(group)
     ignore_counter = 0
