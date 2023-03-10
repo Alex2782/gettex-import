@@ -48,19 +48,14 @@ def save_isin_dict(isin_dict, group = None):
 
     path = get_isin_path(group)
 
-    start = timeit.default_timer()
-
     if _ISIN_SIZE_START.get(group) != len(isin_dict):
 
-        print('save ISIN, _ISIN_SIZE_START: ', _ISIN_SIZE_START.get(group), ', new len:', len(isin_dict)) 
+        print(f'save ISIN, GRP: {group}, NEW LEN: +{len(isin_dict) - _ISIN_SIZE_START.get(group)} -> {len(isin_dict)}') 
         with open(path, 'wb') as f:
             pickle.dump(isin_dict, f)
         
         _ISIN_SIZE_START[group] = len(isin_dict)
-    
-    stop = timeit.default_timer()
-    #print('saved isin_dict in: %.2f s' % (stop - start)) 
-
+ 
 # ---------------------------------------------------------------------------------
 # load_isin_dict
 # ---------------------------------------------------------------------------------
@@ -372,7 +367,7 @@ def isin_skip(tmp_isin_grp, check_ignore, isin_group, ignore_isin):
 # ------------------------------------------------------------------------------------
 def read_gz_posttrade(path, isin_dict, market_type, group = None, trade_data = []):
 
-    print(f'GROUP: {str(group):15}, FILE SIZE: {get_file_sizeinfo(path):>12}, PATH: {path}')
+    print(f'GROUP: {str(group):15} FILE SIZE: {get_file_sizeinfo(path):>12}, PATH: {path}')
 
     isin_group, ignore_isin, check_ignore = get_isin_groups_and_ignore_list(group)
     ignore_counter = 0
@@ -432,7 +427,7 @@ def read_gz_pretrade(path, isin_dict, market_type, group = None, trade_data = []
     - list: trade_data
     """
 
-    print(f'GROUP: {str(group):15}, FILE SIZE: {get_file_sizeinfo(path):>12}, PATH: {path}')
+    print(f'GROUP: {str(group):15} FILE SIZE: {get_file_sizeinfo(path):>12}, PATH: {path}')
 
     isin_group, ignore_isin, check_ignore = get_isin_groups_and_ignore_list(group)
     ignore_counter = 0

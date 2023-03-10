@@ -385,7 +385,7 @@ def analyze_len_data(file, group, max_open_price = 3):
 #================================================================================================
 
 
-path = '../data/2023-03-07/'
+path = '../data/2023-03-08/'
 analyze_volume(path)
 #TODO check 'DE000HB6HPZ6:         1.497.253,44 EUR'  
 #https://www.onvista.de/derivate/Optionsscheine/223755554-HB6HPZ-DE000HB6HPZ6
