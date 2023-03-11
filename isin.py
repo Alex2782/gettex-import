@@ -96,6 +96,24 @@ def check_isin_groups(isin_group):
 
 
 # ------------------------------------------------------------------------------------
+# debug_isin
+# ------------------------------------------------------------------------------------
+def debug_isin(isin):
+
+    global isin_grp_dict
+    if not 'isin_grp_dict' in globals(): isin_grp_dict = get_all_isin_groups()
+
+    grp = ISIN_GROUPS_IDX.get(isin[0:7])
+    isin_dict = isin_grp_dict[grp]['isin_dict']
+    
+    isin_data = isin_dict.get(isin)
+
+    if isin_data is not None:
+        print (f'ISIN: {isin}, GROUP: {grp}, ID: {isin_data["id"]}, CURRENCY: {isin_data["c"]}')
+    else:
+        print (f'ISIN: {isin} not found (GROUP: {grp})')
+
+# ------------------------------------------------------------------------------------
 # show_isin_stats
 # ------------------------------------------------------------------------------------
 def show_isin_stats():
@@ -218,14 +236,23 @@ def save_munc_isin_dict(out_path):
     
 # ==================================================================
 
-#save_munc_isin_dict('../munc.isin.pickle.zip')
 
-#path = '../isin.stats.pickle.zip'
-#isin_group = show_isin_stats()
+if __name__ == '__main__':
+    #https://www.boerse.de/devisen/Euro-Dollar/EU0009652759
+    debug_isin('EU0009652759')
+    debug_isin('DE000A13SWC0')  
+    debug_isin('US88160R1014')     
+    
 
-#init_request()
-#isin_group = check_isin_groups(isin_group)
-#save_as_pickle(path, isin_group)
 
-#isin_group = load_from_pickle(path)
-#isin_group_html_output(isin_group)
+    #save_munc_isin_dict('../munc.isin.pickle.zip')
+
+    #path = '../isin.stats.pickle.zip'
+    #isin_group = show_isin_stats()
+
+    #init_request()
+    #isin_group = check_isin_groups(isin_group)
+    #save_as_pickle(path, isin_group)
+
+    #isin_group = load_from_pickle(path)
+    #isin_group_html_output(isin_group)

@@ -47,7 +47,6 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False, valid
                     sum_size += amount
 
                     grp = ISIN_GROUPS_IDX.get(isin[0:7])
-                    #print (grp, currency, price, amount)
                     isin_dict = isin_grp_dict[grp]['isin_dict']
 
                     if isin_dict.get(isin) is not None and currency != isin_dict[isin]['c']: 

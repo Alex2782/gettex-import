@@ -119,7 +119,6 @@ def munc_isin_html_output(munc_isin_dict):
 
         name_out = name
         if entityType == 'STOCK': name_out = f'<span style="color:#aaaa55">{name}</span>'
-        name_out += '<button id="copy-button">Copy</button>'
 
         html += f'<tr> <td>{isin_link}</td> <td>{name_out}</td> <td>{entityType}</td> ' \
                 f'<td>{entitySubType}</td> <td>{issuer_name}</td> <td>{market_name}</td> </tr>'
@@ -135,7 +134,9 @@ def munc_isin_html_output(munc_isin_dict):
     
 #=========================================================================
 
-path = '../munc.isin.pickle.zip'
-munc_isin_dict = load_from_pickle(path)
-munc_isin_html_output(munc_isin_dict)
+if __name__ == '__main__':
+    
+    path = '../munc.isin.pickle.zip'
+    munc_isin_dict = load_from_pickle(path)
+    munc_isin_html_output(munc_isin_dict)
 
