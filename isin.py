@@ -109,7 +109,7 @@ def debug_isin(isin):
     isin_data = isin_dict.get(isin)
 
     if isin_data is not None:
-        print (f'ISIN: {isin}, GROUP: {grp}, ID: {isin_data["id"]}, CURRENCY: {isin_data["c"]}')
+        print (f'ISIN: {isin} | GROUP: {str(grp):<20} | ID: {isin_data["id"]:>8} | CURRENCY: {isin_data["c"]}')
     else:
         print (f'ISIN: {isin} not found (GROUP: {grp})')
 
@@ -199,6 +199,43 @@ def show_isin_stats():
     return isin_group
 
 
+# ------------------------------------------------------------------------------------
+# list_isin_country_currency
+# ------------------------------------------------------------------------------------
+def list_isin_country_currency():
+
+    isin_grp_dict = get_all_isin_groups()
+    groups = get_isin_group_keys()
+    isin_group = {}
+
+    for grp_name in groups:  
+
+        if isin_group.get(grp_name) is None: isin_group[grp_name] = {}
+
+        isin_dict = isin_grp_dict[grp_name]['isin_dict']
+
+        for isin in isin_dict:
+            country = isin[:2]
+            currency = isin_dict[isin]['c']
+
+            key = country + '-' + currency
+
+            if isin_group[grp_name].get(key) is None: isin_group[grp_name][key] = 0
+            
+            isin_group[grp_name][key] += 1
+
+    #END for grp_name
+
+    for grp in isin_group:
+        
+        strlen = int(20 - len(str(grp)) / 2)
+        print ('-' * strlen, grp, '-' * strlen)
+
+        sorted_vales = sorted(isin_group[grp].items(), key=lambda x: x[1], reverse=True)
+
+        for cc, val in sorted_vales:
+            print(f'{cc:>6} = {val:>8}')
+
 
 # ------------------------------------------------------------------------------------
 # get_munc_isin
@@ -238,11 +275,14 @@ def save_munc_isin_dict(out_path):
 
 
 if __name__ == '__main__':
-    #https://www.boerse.de/devisen/Euro-Dollar/EU0009652759
-    debug_isin('EU0009652759')
-    debug_isin('DE000A13SWC0')  
-    debug_isin('US88160R1014')     
     
+    list_isin_country_currency()
+    
+    #https://www.boerse.de/devisen/Euro-Dollar/EU0009652759
+    #debug_isin('EU0009652759')
+    #debug_isin('DE000A13SWC0')  
+    #debug_isin('US88160R1014') 
+    #debug_isin('DE0005493092')
 
 
     #save_munc_isin_dict('../munc.isin.pickle.zip')
@@ -256,3 +296,5 @@ if __name__ == '__main__':
 
     #isin_group = load_from_pickle(path)
     #isin_group_html_output(isin_group)
+
+    pass
