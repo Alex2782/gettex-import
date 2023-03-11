@@ -14,3 +14,9 @@ ISIN_GROUPS['Goldman_Sachs'] = ['DE000GZ', 'DE000GX', 'DE000GF', 'DE000GK', 'DE0
 
 ISIN_GROUPS['UniCredit'] = ['DE000HC', 'DE000HB', 'DE000HR', 'DE000HV', 'DE00078', 
                             'DE000HZ', 'DE000HX', 'DE000HW', 'DE000HU', 'DE000HY']
+
+ISIN_GROUPS_IDX = {}
+for grp in ISIN_GROUPS:
+    isin_list = ISIN_GROUPS[grp]
+    for isin in isin_list:
+        ISIN_GROUPS_IDX[isin] = grp

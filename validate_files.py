@@ -46,6 +46,14 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False, valid
                     sum_volume += price * amount
                     sum_size += amount
 
+                    grp = ISIN_GROUPS_IDX.get(isin[0:7])
+                    #print (grp, currency, price, amount)
+                    isin_dict = isin_grp_dict[grp]['isin_dict']
+
+                    if isin_dict.get(isin) is not None and currency != isin_dict[isin]['c']: 
+                        print (f'isin: {isin}, currency: {currency}, isin_dict currency: {isin_dict[isin]["c"]}')
+
+
         elif validate_pretrade and tmp[0] == 'pretrade':
             with gzip.open(filepath, 'rt') as f:
                 for line in f:
@@ -156,7 +164,7 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False, valid
 #
 #print('invalid_gz_files:', invalid_gz_files)
 
-sub_path = '/2023-02-16'
+sub_path = '/2023-03-10'
 
 path = '../data'
 validate_files(path + sub_path)

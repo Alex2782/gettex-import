@@ -89,15 +89,11 @@ def load_isin_dict(group = None):
 # get_isin_dict
 # ---------------------------------------------------------------------------------
 def get_isin_dict(isin_dict):
-    # isin_dict_idx
     isin_dict_idx = {}
 
-    start = timeit.default_timer()
     for key, value in isin_dict.items():
         isin_dict_idx[value['id']] = key
-    stop = timeit.default_timer()
     
-    #print('created isin_dict_idx in: %.2f s' % (stop - start), ', sizeof:', get_sizeof_info(isin_dict_idx) )
     return isin_dict_idx
 
 # ------------------------------------------------------------------------------------
