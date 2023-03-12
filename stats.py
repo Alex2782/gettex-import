@@ -1,3 +1,4 @@
+import datetime
 from convert import *
 from open_html import *
 import locale
@@ -6,7 +7,7 @@ import locale
 # ------------------------------------------------------------------------------------
 # analyze_volume
 # ------------------------------------------------------------------------------------
-def analyze_volume(path):
+def analyze_volume(path, from_date, number_of_days, output_top = 25, select_group = False):
 
     print ("analyze_volume, path:", path)
 
@@ -18,60 +19,98 @@ def analyze_volume(path):
 
     start = timeit.default_timer()
 
-    files = list_zip_files(path, True, True)
+    date = datetime.datetime.strptime(from_date, '%Y-%m-%d')
 
-    isin_volume_grp_stats = {}
+    sum_isin_volume_grp_stats = {}
 
-    for grp in groups:
+    for i in range(number_of_days):
 
-        isin_dict = isin_grp_dict[grp]['isin_dict']
-        isin_dict_idx = isin_grp_dict[grp]['isin_dict_idx']
+        sub_path = f'{date.strftime("%Y-%m-%d")}/'
+        date += datetime.timedelta(days=1)
+        tmp_path = path + sub_path
 
-        print ('GROUP:', grp)
+        if not os.path.exists(tmp_path): continue
 
-        if isin_volume_grp_stats.get(grp) is None: isin_volume_grp_stats[grp] = {}
+        files = list_zip_files(tmp_path, True, True)
+        isin_volume_grp_stats = {}
 
-        for filepath in tqdm(files, unit=' files', unit_scale=True):
+        for grp in groups:
+
+            if select_group != False and select_group != grp: continue
+
+            isin_dict = isin_grp_dict[grp]['isin_dict']
+            isin_dict_idx = isin_grp_dict[grp]['isin_dict_idx']
+
+            print ('GROUP:', grp, 'PATH:', tmp_path)
+
+            if isin_volume_grp_stats.get(grp) is None: isin_volume_grp_stats[grp] = {}
+            if sum_isin_volume_grp_stats.get(grp) is None: sum_isin_volume_grp_stats[grp] = {}
             
-            basename = os.path.basename(filepath)
-            tmp = basename.split('.')
 
-            file_date = tmp[1]
-            file_grp = tmp[4]
-            
-            if file_grp == 'pickle': file_grp = None
-            if grp != file_grp: continue
+            for filepath in tqdm(files, unit=' files', unit_scale=True):
+                
+                basename = os.path.basename(filepath)
+                tmp = basename.split('.')
 
-            trade = load_from_pickle(filepath)
+                file_date = tmp[1]
+                file_grp = tmp[4]
+                
+                if file_grp == 'pickle': file_grp = None
+                if grp != file_grp: continue
 
-            isin_idx = 0
-            for data in trade:
+                trade = load_from_pickle(filepath)
 
-                isin = isin_dict_idx[isin_idx]
-                isin_idx += 1
+                isin_idx = 0
+                for data in trade:
 
-                if len(data) == 3 and len (data[2]) > 0:
+                    isin = isin_dict_idx[isin_idx]
+                    isin_idx += 1
 
-                    if isin_volume_grp_stats[grp].get(isin) is None: isin_volume_grp_stats[grp][isin] = 0
+                    if len(data) == 3 and len (data[2]) > 0:
 
-                    post = data[2]
+                        if isin_volume_grp_stats[grp].get(isin) is None: isin_volume_grp_stats[grp][isin] = 0
+                        if sum_isin_volume_grp_stats[grp].get(isin) is None: sum_isin_volume_grp_stats[grp][isin] = 0
+                        
+                        post = data[2]
 
-                    for p in post:
-                        isin_volume_grp_stats[grp][isin] += p[2] * p[3]
-                    
-        #END for filepath
+                        for p in post:
+                            isin_volume_grp_stats[grp][isin] += p[2] * p[3]
+                            sum_isin_volume_grp_stats[grp][isin] += p[2] * p[3]
+                        
+            #END for filepath
 
-        # reverse sorting, output top 25
-        isin_volume_grp_stats[grp] = sorted(isin_volume_grp_stats[grp].items(), key=lambda x: x[1], reverse=True)
+            # reverse sorting
+            isin_volume_grp_stats[grp] = sorted(isin_volume_grp_stats[grp].items(), key=lambda x: x[1], reverse=True)
 
-        for isin, volume in isin_volume_grp_stats[grp][:25]:
-            formatted_volume = locale.format_string("%20.2f", volume, True, True)
-            currency = isin_dict[isin]['c']
-            formatted_volume += ' ' + currency
+            for isin, volume in isin_volume_grp_stats[grp][:output_top]:
+                formatted_volume = locale.format_string("%20.2f", volume, True, True)
+                currency = isin_dict[isin]['c']
+                formatted_volume += ' ' + currency
 
-            print (f'{isin}: {formatted_volume}')
-        print ('-' * 20)
+                print (f'{isin}: {formatted_volume}')
+            print ('-' * 20)
 
+
+    # SUM output
+    if number_of_days > 1:
+
+        for grp in groups:
+
+            if select_group != False and select_group != grp: continue
+
+            print ('-'*20)
+            print ('TOTAL GROUP:', grp)
+            print ('-'*20)
+
+            isin_dict = isin_grp_dict[grp]['isin_dict']        
+            sum_isin_volume_grp_stats[grp] = sorted(sum_isin_volume_grp_stats[grp].items(), key=lambda x: x[1], reverse=True)
+
+            for isin, volume in sum_isin_volume_grp_stats[grp][:output_top]:
+                formatted_volume = locale.format_string("%20.2f", volume, True, True)
+                currency = isin_dict[isin]['c']
+                formatted_volume += ' ' + currency
+
+                print (f'{isin}: {formatted_volume}')
 
     stop = timeit.default_timer()
     show_runtime('volume analyzed in', start, stop)
@@ -385,8 +424,14 @@ def analyze_len_data(file, group, max_open_price = 3):
 #================================================================================================
 
 
-path = '../data/2023-03-08/'
-analyze_volume(path)
+path = '../data/'
+from_date = '2023-02-10'
+number_of_days = 30 
+output_top = 10
+selected_group = None  #options: False, None, 'HSBC', 'Goldman_Sachs', 'UniCredit'
+analyze_volume(path, from_date, number_of_days, output_top, selected_group)
+
+
 #TODO check 'DE000HB6HPZ6:         1.497.253,44 EUR'  
 #https://www.onvista.de/derivate/Optionsscheine/223755554-HB6HPZ-DE000HB6HPZ6
 

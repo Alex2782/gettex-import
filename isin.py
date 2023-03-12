@@ -207,6 +207,7 @@ def list_isin_country_currency():
     isin_grp_dict = get_all_isin_groups()
     groups = get_isin_group_keys()
     isin_group = {}
+    currency_dict = {}
 
     for grp_name in groups:  
 
@@ -219,10 +220,14 @@ def list_isin_country_currency():
             currency = isin_dict[isin]['c']
 
             key = country + '-' + currency
-
             if isin_group[grp_name].get(key) is None: isin_group[grp_name][key] = 0
-            
             isin_group[grp_name][key] += 1
+
+            if currency_dict.get(currency) is None: currency_dict[currency] = 0
+            currency_dict[currency] += 1
+            
+
+
 
     #END for grp_name
 
@@ -235,6 +240,13 @@ def list_isin_country_currency():
 
         for cc, val in sorted_vales:
             print(f'{cc:>6} = {val:>8}')
+
+    
+    print ('-'*10, 'currency', '-'*10)
+    sorted_vales = sorted(currency_dict.items(), key=lambda x: x[1], reverse=True)
+
+    for c, val in sorted_vales:
+        print(f'{c:>3} = {val:>8}')
 
 
 # ------------------------------------------------------------------------------------
