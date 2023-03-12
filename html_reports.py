@@ -1,6 +1,7 @@
 from utils import *
 from isin_groups import *
 from open_html import *
+from stats import *
 
 
 # ------------------------------------------------------------------------------------
@@ -13,7 +14,8 @@ def get_styles():
             'hr {border: 2px solid #444444}' \
             'table, td, th {border:1px solid #333333; border-collapse: collapse;}' \
             'td, th {padding-right:20px; padding:3px}' \
-            'a {color: #8888aa}' \
+            'a, caption {color: #8888aa}' \
+            '.r {text-align:right}' \
             '</style></head>'
     
     return styles
@@ -79,6 +81,60 @@ def isin_group_html_output(isin_group):
     f.close()
     open_file (out_path)
 
+# ------------------------------------------------------------------------------------
+# volume_html_output
+# ------------------------------------------------------------------------------------
+def volume_html_output(sum_volume_stats, volume_day_stats, output_top = 100):
+
+    out_path = '../volume.html'
+
+    isin_grp_dict = get_all_isin_groups()
+    groups = get_isin_group_keys()
+
+    styles = get_styles()
+    script = ''
+    html = ''
+
+    for grp in groups:
+        
+        if sum_volume_stats.get(grp) is None: continue
+
+        html += f'<h1 style="clear:both">GROUP: {grp}</h1>'
+        isin_dict = isin_grp_dict[grp]['isin_dict']
+
+        
+        html += '<table style="float:left; margin-right:10px"> <th>isin</th> <th>volume</th> '
+        html += f'<caption>TOTAL</caption>'
+
+        for isin, volume in sum_volume_stats[grp][:output_top]:
+            formatted_volume = locale.format_string("%20.2f", volume, True, True)
+            currency = isin_dict[isin]['c']
+            formatted_volume += ' ' + currency
+
+            html += f'<tr> <td>{isin}</td> <td class="r">{formatted_volume}</td> </tr>'
+
+        html += '</table>'
+
+        for date in volume_day_stats:
+
+            html += '<table style="float:left"> <th>isin</th> <th>volume</th> '
+            html += f'<caption>DATE: {date}</caption>'
+
+            for isin, volume in volume_day_stats[date][grp][:output_top]:
+                formatted_volume = locale.format_string("%20.2f", volume, True, True)
+                currency = isin_dict[isin]['c']
+                formatted_volume += ' ' + currency
+
+                html += f'<tr> <td>{isin}</td> <td class="r">{formatted_volume}</td> </tr>'
+
+            html += '</table>'
+
+    f = open(out_path, 'wt')    
+    f.write(styles)
+    f.write(html)
+    f.write(script)
+    f.close()
+    open_file (out_path)
 
 # ------------------------------------------------------------------------------------
 # munc_isin_html_output
@@ -135,8 +191,17 @@ def munc_isin_html_output(munc_isin_dict):
 #=========================================================================
 
 if __name__ == '__main__':
-    
-    path = '../munc.isin.pickle.zip'
-    munc_isin_dict = load_from_pickle(path)
-    munc_isin_html_output(munc_isin_dict)
+
+    path = '../data/'
+    from_date = '2023-01-13'
+    number_of_days = 90
+    output_top = 100
+    selected_group = None  #options: False, None, 'HSBC', 'Goldman_Sachs', 'UniCredit'
+    sum_volume_stats, volume_day_stats = analyze_volume(path, from_date, number_of_days, output_top, selected_group)
+    volume_html_output(sum_volume_stats, volume_day_stats, output_top)
+
+
+    #path = '../munc.isin.pickle.zip'
+    #munc_isin_dict = load_from_pickle(path)
+    #munc_isin_html_output(munc_isin_dict)
 

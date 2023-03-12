@@ -22,10 +22,12 @@ def analyze_volume(path, from_date, number_of_days, output_top = 25, select_grou
     date = datetime.datetime.strptime(from_date, '%Y-%m-%d')
 
     sum_isin_volume_grp_stats = {}
+    sum_isin_volume_grp_day_stats = {}
 
     for i in range(number_of_days):
 
-        sub_path = f'{date.strftime("%Y-%m-%d")}/'
+        str_date = f'{date.strftime("%Y-%m-%d")}'
+        sub_path = str_date + '/'
         date += datetime.timedelta(days=1)
         tmp_path = path + sub_path
 
@@ -90,32 +92,33 @@ def analyze_volume(path, from_date, number_of_days, output_top = 25, select_grou
                 print (f'{isin}: {formatted_volume}')
             print ('-' * 20)
 
+        sum_isin_volume_grp_day_stats[str_date] = isin_volume_grp_stats
+
+        #END for grp
 
     # SUM output
-    if number_of_days > 1:
+    for grp in groups:
 
-        for grp in groups:
+        if select_group != False and select_group != grp: continue
 
-            if select_group != False and select_group != grp: continue
+        print ('-'*20)
+        print ('TOTAL GROUP:', grp)
+        print ('-'*20)
 
-            print ('-'*20)
-            print ('TOTAL GROUP:', grp)
-            print ('-'*20)
+        isin_dict = isin_grp_dict[grp]['isin_dict']        
+        sum_isin_volume_grp_stats[grp] = sorted(sum_isin_volume_grp_stats[grp].items(), key=lambda x: x[1], reverse=True)
 
-            isin_dict = isin_grp_dict[grp]['isin_dict']        
-            sum_isin_volume_grp_stats[grp] = sorted(sum_isin_volume_grp_stats[grp].items(), key=lambda x: x[1], reverse=True)
+        for isin, volume in sum_isin_volume_grp_stats[grp][:output_top]:
+            formatted_volume = locale.format_string("%20.2f", volume, True, True)
+            currency = isin_dict[isin]['c']
+            formatted_volume += ' ' + currency
 
-            for isin, volume in sum_isin_volume_grp_stats[grp][:output_top]:
-                formatted_volume = locale.format_string("%20.2f", volume, True, True)
-                currency = isin_dict[isin]['c']
-                formatted_volume += ' ' + currency
-
-                print (f'{isin}: {formatted_volume}')
+            print (f'{isin}: {formatted_volume}')
 
     stop = timeit.default_timer()
     show_runtime('volume analyzed in', start, stop)
 
-    pass
+    return sum_isin_volume_grp_stats, sum_isin_volume_grp_day_stats
 
 # ------------------------------------------------------------------------------------
 # analyze_activity
@@ -423,99 +426,100 @@ def analyze_len_data(file, group, max_open_price = 3):
 
 #================================================================================================
 
+if __name__ == '__main__':
 
-path = '../data/'
-from_date = '2023-02-10'
-number_of_days = 30 
-output_top = 10
-selected_group = None  #options: False, None, 'HSBC', 'Goldman_Sachs', 'UniCredit'
-analyze_volume(path, from_date, number_of_days, output_top, selected_group)
-
-
-#TODO check 'DE000HB6HPZ6:         1.497.253,44 EUR'  
-#https://www.onvista.de/derivate/Optionsscheine/223755554-HB6HPZ-DE000HB6HPZ6
+    path = '../data/'
+    from_date = '2023-01-13'
+    number_of_days = 5
+    output_top = 10
+    selected_group = None  #options: False, None, 'HSBC', 'Goldman_Sachs', 'UniCredit'
+    sum_volume_stats, volume_day_stats = analyze_volume(path, from_date, number_of_days, output_top, selected_group)
 
 
-exit()
-#TODO: genauer überprüfen, Zusammenfassung möglich?
-
-#path = "../data/2023-02-03/trade.20230203.11.15"
-path = "../data/trade.20230118.14.45"
-
-group = 'Goldman_Sachs'
-file = path + f'.{group}.pickle.zip'
-
-#group = None
-#file = path + '.pickle.zip'
-
-analyze_len_data(file, group)
-
-exit()
-min_count = 0
-max_count = 100
-max_vola = 2
-
-#min / max len
-min_post_trade = 0
-max_post_trade = 0
-
-min_post_trade_amount = 0
-post_trade_type = None   # None = no filter, 0 = unknown, 1 = bid, 2 = ask
-isin_list = analyze_activity(file, group, min_count, max_count, max_vola, min_post_trade, max_post_trade, min_post_trade_amount, post_trade_type)
-
-if group: out_path = f'../show_row_data.{group}.html' #None
-else: out_path = f'../show_row_data.html' #None
-#out_path = None
+    #TODO check 'DE000HB6HPZ6:         1.497.253,44 EUR'  
+    #https://www.onvista.de/derivate/Optionsscheine/223755554-HB6HPZ-DE000HB6HPZ6
 
 
-#delete out_path content
-if out_path and os.path.exists(out_path):
-    os.remove(out_path)
+    exit()
+    #TODO: genauer überprüfen, Zusammenfassung möglich?
 
-isin = 'DE000A2QDNX9'
-#show_row_data (file, group, isin, out_path)
+    #path = "../data/2023-02-03/trade.20230203.11.15"
+    path = "../data/trade.20230118.14.45"
 
-counter = 0
-for isin in isin_list:
-    show_row_data (file, group, isin, out_path)
-    counter += 1
-    if counter > 100: break
-    
-if out_path: open_file (out_path)
+    group = 'Goldman_Sachs'
+    file = path + f'.{group}.pickle.zip'
 
-debug_gz = '../data/pretrade.20230201.08.15.mund.csv.gz'
-time = None # '08:00'
-#pretrade_debug(debug_gz, isin, time)
+    #group = None
+    #file = path + '.pickle.zip'
 
+    analyze_len_data(file, group)
 
-exit()
-# Maximalen Wert aus der Spalte 'bid_size' ermitteln
-max_bid_size = np.amax(x['bid_size'])
-print("Maximaler Wert in bid_size:", max_bid_size)
+    exit()
+    min_count = 0
+    max_count = 100
+    max_vola = 2
 
-# Maximalen Wert aus der Spalte 'ask_size' ermitteln
-max_ask_size = np.amax(x['ask_size'])
-print("Maximaler Wert in ask_size:", max_ask_size)
+    #min / max len
+    min_post_trade = 0
+    max_post_trade = 0
 
+    min_post_trade_amount = 0
+    post_trade_type = None   # None = no filter, 0 = unknown, 1 = bid, 2 = ask
+    isin_list = analyze_activity(file, group, min_count, max_count, max_vola, min_post_trade, max_post_trade, min_post_trade_amount, post_trade_type)
 
-# Maximalen Wert aus der Spalte 'bid' ermitteln
-max_bid_size = np.amax(x['bid'])
-print("Maximaler Wert in bid:", max_bid_size)
-
-# Maximalen Wert aus der Spalte 'ask' ermitteln
-max_ask_size = np.amax(x['ask'])
-print("Maximaler Wert in ask:", max_ask_size)
+    if group: out_path = f'../show_row_data.{group}.html' #None
+    else: out_path = f'../show_row_data.html' #None
+    #out_path = None
 
 
-max_bid_index = np.argmax(x['bid'])
-isin_idx = x[max_bid_index]['isin_idx']
-print("Maximaler Wert in bid:", x[max_bid_index]['bid'], 'isin_idx:', isin_idx)
-print("ISIN:", isin_dict_idx.get(isin_idx))
+    #delete out_path content
+    if out_path and os.path.exists(out_path):
+        os.remove(out_path)
 
-max_ask_index = np.argmax(x['ask'])
-isin_idx = x[max_ask_index]['isin_idx']
-print("Maximaler Wert in ask:", x[max_ask_index]['ask'], 'isin_idx:', isin_idx)
-print("ISIN:", isin_dict_idx.get(isin_idx))
+    isin = 'DE000A2QDNX9'
+    #show_row_data (file, group, isin, out_path)
 
-indices = np.where(x['isin_idx'] == 44)
-print('data isin_idx = 44:', x[indices])
+    counter = 0
+    for isin in isin_list:
+        show_row_data (file, group, isin, out_path)
+        counter += 1
+        if counter > 100: break
+        
+    if out_path: open_file (out_path)
+
+    debug_gz = '../data/pretrade.20230201.08.15.mund.csv.gz'
+    time = None # '08:00'
+    #pretrade_debug(debug_gz, isin, time)
+
+
+    exit()
+    # Maximalen Wert aus der Spalte 'bid_size' ermitteln
+    max_bid_size = np.amax(x['bid_size'])
+    print("Maximaler Wert in bid_size:", max_bid_size)
+
+    # Maximalen Wert aus der Spalte 'ask_size' ermitteln
+    max_ask_size = np.amax(x['ask_size'])
+    print("Maximaler Wert in ask_size:", max_ask_size)
+
+
+    # Maximalen Wert aus der Spalte 'bid' ermitteln
+    max_bid_size = np.amax(x['bid'])
+    print("Maximaler Wert in bid:", max_bid_size)
+
+    # Maximalen Wert aus der Spalte 'ask' ermitteln
+    max_ask_size = np.amax(x['ask'])
+    print("Maximaler Wert in ask:", max_ask_size)
+
+
+    max_bid_index = np.argmax(x['bid'])
+    isin_idx = x[max_bid_index]['isin_idx']
+    print("Maximaler Wert in bid:", x[max_bid_index]['bid'], 'isin_idx:', isin_idx)
+    print("ISIN:", isin_dict_idx.get(isin_idx))
+
+    max_ask_index = np.argmax(x['ask'])
+    isin_idx = x[max_ask_index]['isin_idx']
+    print("Maximaler Wert in ask:", x[max_ask_index]['ask'], 'isin_idx:', isin_idx)
+    print("ISIN:", isin_dict_idx.get(isin_idx))
+
+    indices = np.where(x['isin_idx'] == 44)
+    print('data isin_idx = 44:', x[indices])
