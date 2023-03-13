@@ -1,8 +1,77 @@
 import datetime
 from convert import *
-from open_html import *
 import locale
 
+
+# ------------------------------------------------------------------------------------
+# get_isin_trades
+# ------------------------------------------------------------------------------------
+def get_isin_trades(path, from_date, number_of_days, isin):
+    print ("get_isin_trades, path:", path, 'isin:', isin)
+
+    isin_grp_dict = get_all_isin_groups()
+    groups = get_isin_group_keys()
+    grp = ISIN_GROUPS_IDX.get(isin[0:7])
+    print ('GROUP:', grp)
+    isin_dict = isin_grp_dict[grp]['isin_dict']
+    isin_dict_idx = isin_grp_dict[grp]['isin_dict_idx']
+
+    if isin_dict.get(isin) is None: 
+        print (f'ERROR: unknown isin {isin}')
+        return
+
+    isin_idx = isin_dict[isin]['id']
+    start = timeit.default_timer()
+    date = datetime.datetime.strptime(from_date, '%Y-%m-%d')
+
+    output_data = {'pretrade':[], 'extra':[], 'posttrade':[]}
+
+    for i in range(number_of_days):
+
+        str_date = f'{date.strftime("%Y-%m-%d")}'
+        sub_path = str_date + '/'
+        date += datetime.timedelta(days=1)
+        tmp_path = path + sub_path
+
+        if not os.path.exists(tmp_path): continue
+
+        files = list_zip_files(tmp_path, True, True)
+
+        for filepath in tqdm(files, unit=' files', unit_scale=True, desc=str_date):
+            
+            basename = os.path.basename(filepath)
+            tmp = basename.split('.')
+
+            file_date = tmp[1]
+            file_hh = tmp[2]
+            file_mm = tmp[3]
+            file_grp = tmp[4]
+            
+            if file_grp == 'pickle': file_grp = None
+            if grp != file_grp: continue
+
+            trade = load_from_pickle(filepath)
+            if isin_idx >= len(trade): continue
+
+            data = trade[isin_idx]
+
+            if len(data) == 3 and len (data[2]) > 0:
+                
+                pretrade = data[0]
+                extra = list(data[1])
+                extra.append(basename) #append filename
+                posttrade = data[2]
+
+                output_data['pretrade'] += pretrade
+                output_data['extra'].append(extra)
+                output_data['posttrade'] += posttrade 
+
+
+
+    stop = timeit.default_timer()
+    show_runtime('volume read out in', start, stop)
+
+    return output_data
 
 # ------------------------------------------------------------------------------------
 # analyze_volume
@@ -429,11 +498,11 @@ def analyze_len_data(file, group, max_open_price = 3):
 if __name__ == '__main__':
 
     path = '../data/'
-    from_date = '2023-01-13'
+    from_date = '2023-03-13'
     number_of_days = 5
     output_top = 10
     selected_group = None  #options: False, None, 'HSBC', 'Goldman_Sachs', 'UniCredit'
-    sum_volume_stats, volume_day_stats = analyze_volume(path, from_date, number_of_days, output_top, selected_group)
+    #sum_volume_stats, volume_day_stats = analyze_volume(path, from_date, number_of_days, output_top, selected_group)
 
 
     #TODO check 'DE000HB6HPZ6:         1.497.253,44 EUR'  
@@ -490,36 +559,3 @@ if __name__ == '__main__':
     debug_gz = '../data/pretrade.20230201.08.15.mund.csv.gz'
     time = None # '08:00'
     #pretrade_debug(debug_gz, isin, time)
-
-
-    exit()
-    # Maximalen Wert aus der Spalte 'bid_size' ermitteln
-    max_bid_size = np.amax(x['bid_size'])
-    print("Maximaler Wert in bid_size:", max_bid_size)
-
-    # Maximalen Wert aus der Spalte 'ask_size' ermitteln
-    max_ask_size = np.amax(x['ask_size'])
-    print("Maximaler Wert in ask_size:", max_ask_size)
-
-
-    # Maximalen Wert aus der Spalte 'bid' ermitteln
-    max_bid_size = np.amax(x['bid'])
-    print("Maximaler Wert in bid:", max_bid_size)
-
-    # Maximalen Wert aus der Spalte 'ask' ermitteln
-    max_ask_size = np.amax(x['ask'])
-    print("Maximaler Wert in ask:", max_ask_size)
-
-
-    max_bid_index = np.argmax(x['bid'])
-    isin_idx = x[max_bid_index]['isin_idx']
-    print("Maximaler Wert in bid:", x[max_bid_index]['bid'], 'isin_idx:', isin_idx)
-    print("ISIN:", isin_dict_idx.get(isin_idx))
-
-    max_ask_index = np.argmax(x['ask'])
-    isin_idx = x[max_ask_index]['isin_idx']
-    print("Maximaler Wert in ask:", x[max_ask_index]['ask'], 'isin_idx:', isin_idx)
-    print("ISIN:", isin_dict_idx.get(isin_idx))
-
-    indices = np.where(x['isin_idx'] == 44)
-    print('data isin_idx = 44:', x[indices])
