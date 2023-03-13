@@ -147,7 +147,7 @@ def isin_trades_html_output(output_data, isin):
         
         strtime = timestamp_to_strtime(post[0], post[1])
         tmp = strtime.split('.')
-        strtime = f'{tmp[0]}<span class="fade">.{tmp[0]}</span>'
+        strtime = f'{tmp[0]}<span class="fade">.{tmp[1]}</span>'
 
         price = locale.format_string("%.3f", post[2], True, True)
         amount = locale.format_string("%d", post[3], True, True)
