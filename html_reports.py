@@ -18,6 +18,8 @@ def get_styles(title = ''):
             '.fade {color: #555555} '\
             '.r {text-align: right}' \
             '.c {text-align: center}' \
+            '.bid {background-color: #0c3003}' \
+            '.ask {background-color: #400303}' \
             f'</style> <title>{title}</title> </head>'
     
     return styles
@@ -143,6 +145,10 @@ def isin_trades_html_output(output_data, isin):
     html += '<tr> <th>time</th> <th>price</th> <th>amount</th> <th>trade_type</th></tr>'
 
     sum_amount = 0
+    sum_volume = 0
+    sum_bid_volume = 0
+    sum_ask_volume = 0
+
     for post in posttrade:
         
         strtime = timestamp_to_strtime(post[0], post[1])
@@ -154,14 +160,33 @@ def isin_trades_html_output(output_data, isin):
 
         sum_amount += post[3]
 
-        trade_type = 'unknown'
-        if post[4] == 1: trade_type = 'bid'
-        elif post[4] == 2:trade_type = 'ask'
+        volume = post[2] * post[3]
+        sum_volume += volume
 
-        html += f'<tr> <td>{strtime}</td> <td class="r">{price}</td> <td class="r">{amount}</td> <td class="c">{trade_type}</td></tr>'
+        trade_type = 'unknown'
+        if post[4] == 1: 
+            trade_type = 'ask'
+            sum_bid_volume += volume            
+        elif post[4] == 2:
+            trade_type = 'bid'
+            sum_ask_volume += volume
+
+        html += f'<tr class="{trade_type}"> <td>{strtime}</td> <td class="r">{price}</td> <td class="r">{amount}</td> <td class="c">{trade_type}</td></tr>'
 
     sum_amount = locale.format_string("%d", sum_amount, True, True)
-    html += f'<tr> <td></td> <td class="r"></td> <td class="r">{sum_amount}</td> <td class="c"></td></tr>'  
+
+    bid_p = locale.format_string("%.2f", sum_bid_volume / sum_volume * 100, True, True)
+    ask_p = locale.format_string("%.2f", sum_ask_volume / sum_volume * 100, True, True)
+
+    sum_bid_volume = locale.format_string("%.2f", sum_bid_volume, True, True)
+    sum_ask_volume = locale.format_string("%.2f", sum_ask_volume, True, True)
+
+    out_bid_ask = f'<span class="bid">{sum_bid_volume} <span class="fade">({bid_p}%)</span></span>' \
+                  f'<span class="ask">{sum_ask_volume} <span class="fade">({ask_p}%)</span></span>'
+
+    sum_volume = locale.format_string("%.2f", sum_volume, True, True)
+
+    html += f'<tr> <td></td> <td class="r">{sum_volume}</td> <td class="r">{sum_amount}</td> <td class="c">{out_bid_ask}</td></tr>'  
     html += '</table>' 
 
 

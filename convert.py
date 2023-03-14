@@ -211,10 +211,10 @@ def cast_data_pretrade(arr):
     currency = arr[2]
 
     # cast to int and float, idx = 0 (timestamp) is already int
-    bid = float(arr[3]) #bid
-    bid_size = int(float(arr[4])) #bid_size
-    ask = float(arr[5]) #ask
-    ask_size = int(float(arr[6])) #ask_size
+    ask = float(arr[3]) #ask
+    ask_size = int(float(arr[4])) #ask_size
+    bid = float(arr[5]) #bid
+    bid_size = int(float(arr[6])) #bid_size
 
     if bid > 0 and ask > 0:
         #spread = round(ask - bid, 3)
@@ -401,7 +401,7 @@ def read_gz_posttrade(path, isin_dict, market_type, group = None, trade_data = [
             if price == 0 or amount == 0:
                 trade_data[isin_idx][1][7] += 1 # no-post
             else:
-                trade_data[isin_idx][2].append([tm, seconds, price, amount, 0]) #idx(5) -> 0 = unknown, 1 = bid, 2 = ask
+                trade_data[isin_idx][2].append([tm, seconds, price, amount, 0]) #idx(5) -> 0 = unknown, 1 = ask, 2 = bid
 
 
     return isin_dict, trade_data
@@ -761,8 +761,8 @@ def init_posttrade_bid_ask(posttrade_list, tm, seconds, bid, ask):
             abs_price_bid = abs(price - bid)
             abs_price_ask = abs(price - ask)
 
-            if abs_price_bid < abs_price_ask: post[4] = 1 #bid
-            elif abs_price_bid > abs_price_ask: post[4] = 2 #ask
+            if abs_price_bid > abs_price_ask: post[4] = 1 #ask
+            elif abs_price_bid < abs_price_ask: post[4] = 2 #bid
 
 # ------------------------------------------------------------------------------------
 # get_filenames_from_mask

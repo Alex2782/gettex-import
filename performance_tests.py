@@ -1,7 +1,8 @@
 from utils import *
 from isin_groups import *
 from convert import *
-from io import StringIO
+import time
+import struct
 
 
 # Performance Tests
@@ -104,10 +105,10 @@ def cast_data_pretrade_test(arr):
     currency = arr[2]
 
     # cast to int and float, idx = 0 (timestamp) is already int
-    bid = float(arr[3]) #bid
-    bid_size = int(arr[4]) #bid_size
-    ask = float(arr[5]) #ask
-    ask_size = int(arr[6]) #ask_size
+    ask = float(arr[3]) #ask
+    ask_size = int(arr[4]) #ask_size
+    bid = float(arr[5]) #bid
+    bid_size = int(arr[6]) #bid_size
 
     if bid > 0 and ask > 0:
         #spread = round(ask - bid, 3)
@@ -183,7 +184,8 @@ def read_gz(path, isin_dict, market_type, group = None, trade_data = []):
 
             #ohne -> 35.428 s, speed:  6.469 MB/s
             isin, tm, seconds, currency, bid, bid_size, ask, ask_size, spread, price = cast_data_pretrade_test(tmp)
-
+            print (isin, 'bid:', bid, 'ask:', ask)
+            exit()
             #nach 'split' und 'cast' mit 'round' ALL GROUP: 52.742 s, speed:  4.345 MB/s
             # ---->                 ohne 'round' ALL GROUP: 46.502 s, speed:  4.928 MB/s
 
@@ -305,16 +307,87 @@ def read_gz(path, isin_dict, market_type, group = None, trade_data = []):
     print(f'ignore_counter: {ignore_counter:>15} ({ignore_p:>3.1f}%), GROUP: {group}' )
     print ('=' * 60)
 
-# from ssd
+#convert_to_binary
+def convert_to_binary(path):
 
+    print ('convert_to_binary, path:', path)
+
+    size = get_file_sizeinfo(path)
+    size_val = size.replace(' MB', '')
+
+    filename = os.path.basename(path)
+    tmp = filename.split('.')
+    date = tmp[1]
+    hh = tmp[2]
+    mm = tmp[3]
+    print (tmp)
+
+    output_path = os.path.dirname(path) + "/" + '.'.join(tmp[:5]) + ".bin.zip"
+    print ('output_path: ', output_path)
+    #start_tm = 
+
+    #>>> import time
+    #>>> import datetime
+    #>>> s = "01/12/2011"
+    #>>> time.mktime(datetime.datetime.strptime(s, "%d/%m/%Y").timetuple())
+    s = date  + hh + mm
+    start_tm = time.mktime(datetime.datetime.strptime(s, "%Y%m%d%H%M").timetuple())
+    print (start_tm, datetime.datetime.fromtimestamp(start_tm).strftime("%d.%m.%Y %H:%M"))
+
+    start = timeit.default_timer()
+
+    with gzip.open(path, 'rt') as f_in:
+
+        with gzip.open(output_path, "wb") as f_out:
+            idx = 0
+            total_lines = 0
+            for line in tqdm(f_in, total=None, unit=' lines', unit_scale=True):
+
+                total_lines += 1
+                arr = line.split(',')
+
+                #isin, tm, seconds, currency, bid, bid_size, ask, ask_size, spread, price = cast_data_pretrade_test(arr)
+                #with cast_data_pretrade_test: 18.583 s, speed: 12.332 MB/s
+                #without cast_data_pretrade_test:  8.162 s, speed: 28.078 MB/s
+
+                isin = arr[0]
+                #tm, seconds = strtime_to_timestamp_test(arr[1])
+                currency = arr[2]
+
+                # cast to int and float, idx = 0 (timestamp) is already int
+                bid = float(arr[3]) #bid
+                bid_size = int(float(arr[4])) #bid_size
+                ask = float(arr[5]) #ask
+                ask_size = int(float(arr[6])) #ask_size
+                #convert_to_binary: 16.907 s, speed: 13.554 MB/s
+                end_char = 124 # = '|'
+
+                f_out.write(struct.pack("dLdLb", bid, bid_size, ask, ask_size, end_char))
+
+
+    stop = timeit.default_timer()
+    runtime = stop-start
+    print(f'convert_to_binary: {runtime:>6.3f} s, speed: {float(size_val)/runtime:>6.3f} MB/s')
+
+    pass
+
+
+# from ssd
 path = '../data_ssd/pretrade.20230112.11.00.mund.csv.gz' #240 MB
 market_type = 'mund'
 print ('FROM SSD')
 
+#TEST text to binary, without grouping
+#ALL GROUP -> read gz file: 67.471 s, speed:  3.397 MB/s
+#        convert_to_binary: 82.159 s, speed:  2.789 MB/s
+#convert_to_binary(path)
+#exit()
+
+
 start = timeit.default_timer()
 for grp in groups:
 
-    #if grp != None: continue
+    if grp != None: continue
     #if grp != 'HSBC': continue
     #if grp != 'Goldman_Sachs': continue
     #if grp != 'UniCredit': continue
