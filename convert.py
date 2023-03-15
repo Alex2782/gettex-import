@@ -118,10 +118,10 @@ def pretrade_debug(path, debug_isin = None, debug_time = None, output_content = 
             if line[0:1] == ',':
                 tmp = line.split(',')
                 line_isin = ''
-                line_time = tmp[1][0:len(debug_time)]
+                if debug_time is not None: line_time = tmp[1][0:len(debug_time)]
             else:
                 line_isin = line[0:12]
-                line_time = line[13:13+len(debug_time)]
+                if debug_time is not None: line_time = line[13:13+len(debug_time)]
 
             if debug_isin is not None and line_isin != debug_isin: continue
             if debug_time is not None and line_time != debug_time: continue

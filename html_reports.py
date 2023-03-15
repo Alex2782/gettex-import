@@ -20,6 +20,7 @@ def get_styles(title = ''):
             '.c {text-align: center}' \
             '.bid {background-color: #0c3003}' \
             '.ask {background-color: #400303}' \
+            '.block {width: 100%}' \
             f'</style> <title>{title}</title> </head>'
     
     return styles
@@ -145,6 +146,9 @@ def isin_trades_html_output(output_data, isin):
     html += '<tr> <th>time</th> <th>price</th> <th>amount</th> <th>trade_type</th></tr>'
 
     sum_amount = 0
+    sum_bid_amount = 0
+    sum_ask_amount = 0
+
     sum_volume = 0
     sum_bid_volume = 0
     sum_ask_volume = 0
@@ -166,14 +170,20 @@ def isin_trades_html_output(output_data, isin):
         trade_type = 'unknown'
         if post[4] == 1: 
             trade_type = 'ask'
-            sum_bid_volume += volume            
+            sum_ask_volume += volume
+            sum_ask_amount += post[3]
+
         elif post[4] == 2:
             trade_type = 'bid'
-            sum_ask_volume += volume
+            sum_bid_volume += volume
+            sum_bid_amount += post[3]  
+
 
         html += f'<tr class="{trade_type}"> <td>{strtime}</td> <td class="r">{price}</td> <td class="r">{amount}</td> <td class="c">{trade_type}</td></tr>'
 
     sum_amount = locale.format_string("%d", sum_amount, True, True)
+    sum_bid_amount = locale.format_string("%d", sum_bid_amount, True, True)
+    sum_ask_amount = locale.format_string("%d", sum_ask_amount, True, True)
 
     bid_p = locale.format_string("%.2f", sum_bid_volume / sum_volume * 100, True, True)
     ask_p = locale.format_string("%.2f", sum_ask_volume / sum_volume * 100, True, True)
@@ -181,12 +191,22 @@ def isin_trades_html_output(output_data, isin):
     sum_bid_volume = locale.format_string("%.2f", sum_bid_volume, True, True)
     sum_ask_volume = locale.format_string("%.2f", sum_ask_volume, True, True)
 
-    out_bid_ask = f'<span class="bid">{sum_bid_volume} <span class="fade">({bid_p}%)</span></span>' \
-                  f'<span class="ask">{sum_ask_volume} <span class="fade">({ask_p}%)</span></span>'
+    sum_volume = locale.format_string("%04.2f", sum_volume, True, True)
 
-    sum_volume = locale.format_string("%.2f", sum_volume, True, True)
+    out_volume = '<table>' \
+                  f'<tr><td class="bid r"> {sum_bid_volume} </td> <td class="fade"> {bid_p} % </td></tr>' \
+                  f'<tr><td class="ask r"> {sum_ask_volume} </td> <td class="fade"> {ask_p} % </td></tr>' \
+                  f'<tr><td class="r"> {sum_volume} </td><td></td></tr>' \
+                  '</table>'
+    
+    out_amount = '<table>' \
+                f'<tr><td class="bid r"> {sum_bid_amount} </td></tr>' \
+                f'<tr><td class="ask r"> {sum_ask_amount} </td></tr>' \
+                f'<tr><td class="r"> {sum_amount} </td></tr>' \
+                '</table>'
 
-    html += f'<tr> <td></td> <td class="r">{sum_volume}</td> <td class="r">{sum_amount}</td> <td class="c">{out_bid_ask}</td></tr>'  
+
+    html += f'<tr> <td></td> <td class="r"></td> <td class="r">{out_amount}</td> <td class="r">{out_volume}</td></tr>'  
     html += '</table>' 
 
 
@@ -313,7 +333,7 @@ if __name__ == '__main__':
 
     path = '../data/'
     from_date = '2023-03-13'
-    number_of_days = 90
+    number_of_days = 1
     output_top = 10
     selected_group = False  #options: False, None, 'HSBC', 'Goldman_Sachs', 'UniCredit'
     #sum_volume_stats, volume_day_stats = analyze_volume(path, from_date, number_of_days, output_top, selected_group)
@@ -323,9 +343,9 @@ if __name__ == '__main__':
     isin = 'DE000HG832C8'
     output_path = f'../{isin}.pickle.zip'
 
-    #output_data = get_isin_trades(path, from_date, number_of_days, isin)
+    output_data = get_isin_trades(path, from_date, number_of_days, isin)
     #save_as_pickle(output_path, output_data)
-    output_data = load_from_pickle(output_path)
+    #output_data = load_from_pickle(output_path)
     isin_trades_html_output(output_data, isin)
 
 

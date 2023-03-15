@@ -509,6 +509,20 @@ if __name__ == '__main__':
     #https://www.onvista.de/derivate/Optionsscheine/223755554-HB6HPZ-DE000HB6HPZ6
 
 
+    debug_gz = '../data/2023-03-13/pretrade.20230313.13.30.mund.csv.gz'
+    time = None # '08:00'
+    #pretrade_debug(debug_gz, 'DE000HG832C8', time)
+
+
+    arr = load_from_pickle('../data/2023-03-13/trade.20230313.13.15.HSBC.pickle.zip')
+    isin_grp_dict = get_all_isin_groups()
+    isin_dict = isin_grp_dict['HSBC']['isin_dict']
+    isin_idx = isin_dict['DE000HG832C8']['id']
+    print ('DE000HG832C8:', isin_idx)
+    print (arr[isin_idx][1])
+
+
+
     exit()
     #TODO: genauer überprüfen, Zusammenfassung möglich?
 
@@ -533,7 +547,7 @@ if __name__ == '__main__':
     max_post_trade = 0
 
     min_post_trade_amount = 0
-    post_trade_type = None   # None = no filter, 0 = unknown, 1 = bid, 2 = ask
+    post_trade_type = None   # None = no filter, 0 = unknown, 1 = ask, 2 = bid
     isin_list = analyze_activity(file, group, min_count, max_count, max_vola, min_post_trade, max_post_trade, min_post_trade_amount, post_trade_type)
 
     if group: out_path = f'../show_row_data.{group}.html' #None
