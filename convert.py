@@ -269,10 +269,10 @@ def pretrade_list_to_dict(trade_list):
 
     ret = {}
     ret['timestamp'] = trade_list[0]
-    ret['bid_size_max'] = trade_list[1]
-    ret['bid_size_min'] = trade_list[2]
-    ret['ask_size_max'] = trade_list[3]
-    ret['ask_size_min'] = trade_list[4]
+    ret['ask_size_max'] = trade_list[1]
+    ret['ask_size_min'] = trade_list[2]    
+    ret['bid_size_max'] = trade_list[3]
+    ret['bid_size_min'] = trade_list[4]
     ret['spread_max'] = trade_list[5]
     ret['spread_min'] = trade_list[6]
     ret['price_open'] = trade_list[7]
@@ -874,7 +874,7 @@ def convert_files(path, overwrite = False, file_mask = None):
     #END for job_name   
 
     stop = timeit.default_timer()
-    if len(files) > 0: show_runtime('files converted in', start, stop)
+    if len(files) > 0: show_runtime(f'{datetime.datetime.now()} - files converted in', start, stop)
 
 # ===========================================================================================
 
@@ -882,7 +882,7 @@ def convert_files(path, overwrite = False, file_mask = None):
 if __name__ == '__main__':
 
     overwrite = True
-    
+
     # SSD
     path = "../data_ssd"
     #convert_files(path, overwrite, '20230111.21.00')
@@ -890,7 +890,7 @@ if __name__ == '__main__':
 
     # HDD
     path = "../data"
-    sub_path = today = datetime.date.today().strftime('%Y-%m-%d')
+    sub_path = datetime.date.today().strftime('%Y-%m-%d')
     convert_files(path + '/' + sub_path)
 
 

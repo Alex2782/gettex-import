@@ -24,7 +24,8 @@ def get_isin_trades(path, from_date, number_of_days, isin):
     start = timeit.default_timer()
     date = datetime.datetime.strptime(from_date, '%Y-%m-%d')
 
-    output_data = {'pretrade':[], 'extra':[], 'posttrade':[]}
+    #output_data = {'pretrade':[], 'extra':[], 'posttrade':[]}
+    output_data = {}
 
     for i in range(number_of_days):
 
@@ -34,6 +35,8 @@ def get_isin_trades(path, from_date, number_of_days, isin):
         tmp_path = path + sub_path
 
         if not os.path.exists(tmp_path): continue
+
+        output_data[str_date] = {'pretrade':[], 'extra':[], 'posttrade':[]}
 
         files = list_zip_files(tmp_path, True, True)
 
@@ -59,13 +62,13 @@ def get_isin_trades(path, from_date, number_of_days, isin):
                 pretrade = data[0]
                 extra = list(data[1])
                 extra.append(basename) #append filename
-                output_data['pretrade'] += pretrade
-                output_data['extra'].append(extra)
+                output_data[str_date]['pretrade'] += pretrade
+                output_data[str_date]['extra'].append(extra)
 
             if len(data) == 3 and len (data[2]) > 0:
                 
                 posttrade = data[2]
-                output_data['posttrade'] += posttrade 
+                output_data[str_date]['posttrade'] += posttrade 
 
 
 
@@ -512,7 +515,7 @@ if __name__ == '__main__':
 
     debug_gz = '../data/2023-03-13/pretrade.20230313.13.30.mund.csv.gz'
     time = None # '08:00'
-    pretrade_debug(debug_gz, 'DE000HG832C8', time)
+    #pretrade_debug(debug_gz, 'DE000HG832C8', time)
 
 
     #arr = load_from_pickle('../data/2023-03-13/trade.20230313.13.15.HSBC.pickle.zip')
