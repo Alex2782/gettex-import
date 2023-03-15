@@ -54,16 +54,17 @@ def get_isin_trades(path, from_date, number_of_days, isin):
             if isin_idx >= len(trade): continue
 
             data = trade[isin_idx]
-
-            if len(data) == 3 and len (data[2]) > 0:
-                
+            
+            if len(data) > 0:
                 pretrade = data[0]
                 extra = list(data[1])
                 extra.append(basename) #append filename
-                posttrade = data[2]
-
                 output_data['pretrade'] += pretrade
                 output_data['extra'].append(extra)
+
+            if len(data) == 3 and len (data[2]) > 0:
+                
+                posttrade = data[2]
                 output_data['posttrade'] += posttrade 
 
 
