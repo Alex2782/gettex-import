@@ -220,8 +220,8 @@ def cast_data_pretrade(arr):
         #spread = round(ask - bid, 3)
         #price = round(bid + spread / 2, 3)
         #speed up, without round
-        spread = ask - bid
-        price = bid + spread / 2
+        spread = bid - ask
+        price = ask + spread / 2
     else: # 'bid' or 'ask' can be 0 values
         spread = 0
         price = ask + bid # shortener for price = ask or price = bid

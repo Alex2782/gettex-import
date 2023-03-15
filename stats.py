@@ -512,15 +512,15 @@ if __name__ == '__main__':
 
     debug_gz = '../data/2023-03-13/pretrade.20230313.13.30.mund.csv.gz'
     time = None # '08:00'
-    #pretrade_debug(debug_gz, 'DE000HG832C8', time)
+    pretrade_debug(debug_gz, 'DE000HG832C8', time)
 
 
-    arr = load_from_pickle('../data/2023-03-13/trade.20230313.13.15.HSBC.pickle.zip')
-    isin_grp_dict = get_all_isin_groups()
-    isin_dict = isin_grp_dict['HSBC']['isin_dict']
-    isin_idx = isin_dict['DE000HG832C8']['id']
-    print ('DE000HG832C8:', isin_idx)
-    print (arr[isin_idx][1])
+    #arr = load_from_pickle('../data/2023-03-13/trade.20230313.13.15.HSBC.pickle.zip')
+    #isin_grp_dict = get_all_isin_groups()
+    #isin_dict = isin_grp_dict['HSBC']['isin_dict']
+    #isin_idx = isin_dict['DE000HG832C8']['id']
+    #print ('DE000HG832C8:', isin_idx)
+    #print (arr[isin_idx][1])
 
 
 
