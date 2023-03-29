@@ -430,7 +430,7 @@ if __name__ == '__main__':
 
     path = '../data/'
     from_date = '2023-03-13'
-    number_of_days = 3
+    number_of_days = 30
     output_top = 10
     selected_group = False  #options: False, None, 'HSBC', 'Goldman_Sachs', 'UniCredit'
     #sum_volume_stats, volume_day_stats = analyze_volume(path, from_date, number_of_days, output_top, selected_group)
@@ -442,8 +442,8 @@ if __name__ == '__main__':
 
     output_path = f'../{isin}.pickle.zip'
 
-    #output_data = get_isin_trades(path, from_date, number_of_days, isin)
-    #save_as_pickle(output_path, output_data)
+    output_data = get_isin_trades(path, from_date, number_of_days, isin)
+    save_as_pickle(output_path, output_data)
     output_data = load_from_pickle(output_path)
     isin_trades_html_output(output_data, isin)
 

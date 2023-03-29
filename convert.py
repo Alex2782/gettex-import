@@ -108,7 +108,7 @@ def pretrade_debug(path, debug_isin = None, debug_time = None, output_content = 
 
     output = []
     isin_counter = {}
-    file_out = ''
+    file_out = f'<h2>{path}</h2>'
 
     with gzip.open(path, 'rt') as f:
 
