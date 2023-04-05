@@ -25,6 +25,17 @@ def get_file_date(name):
 
     return str_date
 
+# -------------------------------------------------
+# get_job_name_and_encode_filename
+# -------------------------------------------------
+def get_job_name_and_encode_filename(file):
+    file = file.replace('"', '').replace('&amp;', '&');
+    name = os.path.basename(file)
+
+    tmp = name.split('.', 4)
+    job_name = tmp[1] + '.' + tmp[2] + '.' + tmp[3]
+
+    return file, job_name
 # =======================================================================================================
 
 start = timeit.default_timer()
@@ -34,24 +45,39 @@ init_request() # init 'User-agent' for all requests
 data_url = "https://www.gettex.de/handel/delayed-data/"
 
 # get pretrade and posttrade file URLs
-files = []
+# check files, try again if not match
+for t in range(3):
+    files = []
+    complete = False
+    for url_path in ("pretrade-data/", "posttrade-data/"):
 
-for url_path in ("pretrade-data/", "posttrade-data/"):
+        html = get_html(data_url + url_path)
+        tmp = find_files(html)
 
-    html = get_html(data_url + url_path)
-    files += find_files(html)
+        if len(files) > 0:
+            file1 = files[0]
+            file2 = tmp[0]
+            file1, job_name1 = get_job_name_and_encode_filename(file1)
+            file2, job_name2 = get_job_name_and_encode_filename(file2)
 
-print ("count files: ", len(files))
+            print('check pre/post-files:', job_name1, '<->', job_name2)
+            if job_name1 != job_name2:
+                print ('files are incomplete, TRY again in 3 seconds ...')
+                time.sleep(3)
+                break        
+        
+        if len (files) > 0: complete = True
 
+        files += tmp
+    #END for url_path
+    if complete: break
+
+print ("number of files: ", len(files))
 
 job_files = {}
 for file in files:
 
-    file = file.replace('"', '').replace('&amp;', '&');
-    name = os.path.basename(file)
-
-    tmp = name.split('.', 4)
-    job_name = tmp[1] + '.' + tmp[2] + '.' + tmp[3]
+    file, job_name = get_job_name_and_encode_filename(file)
 
     if not job_files.get(job_name): job_files[job_name] = []
     job_files[job_name].append(file)
@@ -109,43 +135,6 @@ for job_name in job_files:
 stop = timeit.default_timer()
 
 show_runtime('files downloaded in', start, stop)   
-
-exit()
-
-
-#download all files
-for url in files:
-    url = url.replace('"', '').replace('&amp;', '&');
-    name = os.path.basename(url)
-
-    date = get_file_date(name)
-    output_path = "../data/" + date
-
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
-
-    output_path += '/' + name
-
-    # check '*.csv.gz' and '*.csv' files, skip if already exist
-    # must be valid if exists
-    if (os.path.isfile(output_path) and is_valid_gzip(output_path)) or os.path.isfile(output_path[0:-3]):
-        print ("SKIP: " + output_path)
-        continue 
-    
-    download_url(url, output_path)
-    time.sleep(1)
-
-    #check gz file and try again
-    if not is_valid_gzip(output_path):
-        time.sleep(2)
-        print ('TRY #2: ', output_path)
-        download_url(url, output_path)
-        time.sleep(2)
-        if is_valid_gzip(output_path): print("OK !")
-
-stop = timeit.default_timer()
-
-show_runtime('files downloaded in', start, stop)
 
 # TODO: main data
 # https://mein.finanzen-zero.net/assets/searchdata/downloadable-instruments.csv
