@@ -134,9 +134,4 @@ for job_name in job_files:
 
 stop = timeit.default_timer()
 
-show_runtime('files downloaded in', start, stop)   
-
-# TODO: main data
-# https://mein.finanzen-zero.net/assets/searchdata/downloadable-instruments.csv
-
-
+show_runtime('files downloaded in', start, stop)
