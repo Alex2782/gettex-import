@@ -1,9 +1,12 @@
-from utils import download_url
+from utils import download_compressed_url
 import os
 from datetime import datetime
 
 _CACHE_DAYS = 7
 
+# -------------------------------------------------
+# download_instruments
+# -------------------------------------------------
 def download_instruments():
     url = 'https://mein.finanzen-zero.net/assets/searchdata/downloadable-instruments.csv'
     output_path = '../'
@@ -34,7 +37,7 @@ def download_instruments():
 
     if download_new_file:
         print (f'download new file {out_filepath} ...')
-        download_url(url, out_filepath)
+        download_compressed_url(url, out_filepath)
     else:
         print (f'the file {out_filepath} is still up to date, downloaded {days_ago} day(s) ago (_CACHE_DAYS = {_CACHE_DAYS})')
 

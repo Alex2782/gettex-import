@@ -38,6 +38,33 @@ def download_url(url, output_path):
         urllib.request.urlretrieve(url, filename=output_path, reporthook=t.update_to)
 
 # -------------------------------------------------
+# download_compressed_url
+# -------------------------------------------------
+def download_compressed_url(url, output_path):
+
+    headers = {'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Encoding': 'gzip, deflate',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36'}
+    
+    req = urllib.request.Request(url, headers=headers)
+    response = urllib.request.urlopen(req)
+
+    data = None
+
+    if response.info().get('Content-Encoding') == 'gzip':
+        data = gzip.decompress(response.read())
+    elif response.info().get('Content-Encoding') == 'deflate':
+        data = response.read()
+    elif response.info().get('Content-Encoding'):
+        print('Encoding type unknown')
+    else:
+        data = response.read()
+
+    if data is not None:
+        with open(output_path, 'wb') as f_out:
+            f_out.write(data)
+
+# -------------------------------------------------
 # get_html
 # -------------------------------------------------
 def get_html(url, log = True):
