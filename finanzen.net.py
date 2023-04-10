@@ -1,5 +1,7 @@
 from utils import download_compressed_url
 import os
+import csv
+import pickle
 from datetime import datetime
 
 _CACHE_DAYS = 7
@@ -41,6 +43,51 @@ def download_instruments():
     else:
         print (f'the file {out_filepath} is still up to date, downloaded {days_ago} day(s) ago (_CACHE_DAYS = {_CACHE_DAYS})')
 
-# =======================
+# -------------------------------------------------
+# download_instruments
+# -------------------------------------------------
+def convert_csv_to_type_dict():
+    #DE: ISIN;WKN;Typ;Sparplan;Name;
+    #EN: isin;wkn;type;savings_plan;name
+    csv_path = '../downloadable-instruments.csv'
+    pickle_out = '../finanzen.net.pickle'
+
+    data = {}
+
+    with open(csv_path, 'rt') as f_in:
+        reader = csv.reader(f_in, delimiter=';')
+        next(reader) # skip first line
+        for row in reader:
+            isin, wkn, type, savings_plan, name, _ = row
+            if data.get(type) is None: data[type] = []
+            dict_data = {'wkn': wkn, 'isin': isin, 'savings_plan': savings_plan, 'name': name}
+            data[type].append(dict_data)
+
+    print (f'saving file {pickle_out} ...')
+    with open(pickle_out, 'wb') as f_out:
+        pickle.dump(data, f_out)
+
+    pass
+
+# -------------------------------------------------
+# download_instruments
+# -------------------------------------------------
+def load_dict_data():
+    pickle_path = '../finanzen.net.pickle'
+
+    ret = None
+    with open(pickle_path, 'rb') as f_in:
+        ret = pickle.loads(f_in.read())
+
+    return ret
+
+# ================================================================================
 if __name__ == '__main__':
     download_instruments()
+    convert_csv_to_type_dict()
+
+    print('load_dict_data ...')
+    print('-'*15)
+    data = load_dict_data()
+    for type in data:
+        print (type, 'len:', len(data[type]))
