@@ -42,9 +42,11 @@ def download_instruments():
         download_compressed_url(url, out_filepath)
     else:
         print (f'the file {out_filepath} is still up to date, downloaded {days_ago} day(s) ago (_CACHE_DAYS = {_CACHE_DAYS})')
+    
+    return download_new_file
 
 # -------------------------------------------------
-# download_instruments
+# convert_csv_to_type_dict
 # -------------------------------------------------
 def convert_csv_to_type_dict():
     #DE: ISIN;WKN;Typ;Sparplan;Name;
@@ -58,10 +60,23 @@ def convert_csv_to_type_dict():
         reader = csv.reader(f_in, delimiter=';')
         next(reader) # skip first line
         for row in reader:
+            
             isin, wkn, type, savings_plan, name, _ = row
-            if data.get(type) is None: data[type] = []
-            dict_data = {'wkn': wkn, 'isin': isin, 'savings_plan': savings_plan, 'name': name}
-            data[type].append(dict_data)
+            sp = 0
+            if savings_plan == 'Ja': sp = 1  
+
+            if data.get(type) is None: 
+                data[type] = {}
+                data[type]['isin_list'] = []
+                data[type]['isin_name_dict'] = {}
+                data[type]['wkn_isin_dict'] = {}
+                data[type]['isin_savings_plan_dict'] = {}
+
+            data[type]['isin_list'].append(isin)
+            data[type]['isin_name_dict'][isin] = name
+            data[type]['wkn_isin_dict'][wkn] = isin
+            data[type]['isin_savings_plan_dict'][isin] = sp
+
 
     print (f'saving file {pickle_out} ...')
     with open(pickle_out, 'wb') as f_out:
@@ -70,7 +85,7 @@ def convert_csv_to_type_dict():
     pass
 
 # -------------------------------------------------
-# download_instruments
+# load_dict_data
 # -------------------------------------------------
 def load_dict_data():
     pickle_path = '../finanzen.net.pickle'
@@ -83,11 +98,15 @@ def load_dict_data():
 
 # ================================================================================
 if __name__ == '__main__':
-    download_instruments()
-    convert_csv_to_type_dict()
+    
+    if download_instruments():
+        convert_csv_to_type_dict()
 
     print('load_dict_data ...')
-    print('-'*15)
+    print('-'*17)
+    print (f'{"TYPE":^6} |  {"COUNT":^6}')
+    print('-'*17)
     data = load_dict_data()
     for type in data:
-        print (type, 'len:', len(data[type]))
+        print (f'{type:<6} : ', len(data[type]['isin_list']))
+    print('-'*17)
