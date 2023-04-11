@@ -1,12 +1,12 @@
 from utils import *
 from isin_groups import *
 from convert import *
-
+from finanzen_net import *
 
 path = '../data'
 
 date = None
-#date = '2023-03-29'
+date = '2023-03-29'
 if date is not None: path += f'/{date}'
 
 # DE0007236101 #Siemens AG Namens-Aktien o.N.
@@ -39,14 +39,19 @@ if date is not None: path += f'/{date}'
 # DE0005104806;510480;AKTIE;Nein;SYZYGY AG O.N.;
 # DE0005110001;511000;AKTIE;Nein;ALL FOR ONE GROUP NA O.N.;
 
-isin_list = []
+isin_list = ["US88160R1014"] #DEBUG-Test Tesla
 #isin_list += ["DE0007236101", "DE0008232125", "US83406F1021", "FI0009000681"]
 #isin_list += ["US4581401001", "NL0011821202", "DE0005552004", "US02079K3059", "US5949181045"]
 #isin_list += ["US88160R1014", "DE000BASF111", "DE000BAY0017", "DE000BFB0019"]
-isin_list += ["DE0005008007", "DE0005009740", "DE0005019004", "DE0005019038", 
-              "DE0005032007", "DE0005089031", "DE0005093108", "DE0005102008",
-              "DE0005103006", "DE0005104400", "DE0005104806", "DE0005110001"
-              ]
+#isin_list += ["DE0005008007", "DE0005009740", "DE0005019004", "DE0005019038", 
+#              "DE0005032007", "DE0005089031", "DE0005093108", "DE0005102008",
+#              "DE0005103006", "DE0005104400", "DE0005104806", "DE0005110001"
+#              ]
+
+# get all isin from type 'stock' ('AKTIE', check: finanzen_net.py)
+#isin_list = load_dict_data()['AKTIE']['isin_list']
+#print ('isin_list - len:', len(isin_list))
+
 
 start = timeit.default_timer()
 
@@ -61,15 +66,15 @@ for isin in isin_list:
     isin_grp = ISIN_GROUPS_IDX.get(isin)
     isin_dict = isin_grp_dict[isin_grp]['isin_dict']
 
-    print ('isin:', isin)
-    print ('isin_grp:', isin_grp)
+    #print ('isin:', isin)
+    #print ('isin_grp:', isin_grp)
 
     isin_idx = isin_dict.get(isin)
     if isin_idx is None:
         print(f'isin {isin} not found')
         continue
 
-    print ('isin_idx:', isin_idx)
+    #print ('isin_idx:', isin_idx)
 
     if isin_grp_data.get(isin_grp) is None: isin_grp_data[isin_grp] = []
     isin_grp_data[isin_grp].append(dict(isin_idx=isin_idx['id'], isin=isin))
@@ -111,6 +116,20 @@ for filepath in tqdm(files, unit=' files', unit_scale=True):
         if len(data) > 1: extra = data[1]
         if len(data) > 2: post = data[2]
 
+        # pre-data
+        #idx 0 = timestamp in minutes of the day
+        #idx 1, 2 = bid_size: max, min
+        #idx 3, 4 = ask_size: max, min
+        #idx 5, 6 = spread: max, min
+        #idx 7, 8, 9, 10 = price: open, high, low, close
+        #idx 11 = activity: count data
+        #idx 12, 13 = volatility: long, short
+        #idx 14, 15, 16 = volatility activity: long, short, equal (no changes)
+        #idx 17, 18 = no values counter: bid, ask  (price or size = 0)        
+        
+
+        # extra-data
+        # [counter, open,high,low,close, no-pre-bid,no-pre-ask,no-post, vola_profit, bid_long,bid_short,ask_long,ask_short, tmp_last_bid,tmp_last_ask]
         open_p = round(extra[1], 3)
         high = round(extra[2], 3)
         low = round(extra[3], 3)

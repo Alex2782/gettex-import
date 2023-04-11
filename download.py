@@ -1,6 +1,7 @@
 from utils import *
 import time
 import re
+
 import os.path
 from datetime import datetime
 
@@ -120,11 +121,16 @@ for job_name in job_files:
 
         #check gz file and try again
         if not is_valid_gzip(file_path):
-            time.sleep(2)
+            time.sleep(5)
             print ('TRY #2: ', file_path)
             download_url(url, file_path)
-            time.sleep(2)
+            time.sleep(5)
+            print ('TRY #3: ', file_path)
+            download_url(url, file_path)
             if is_valid_gzip(file_path): print("OK !")
+            else: 
+                print(f'ERROR: file {file_path} is not valid and will be removed')
+                os.remove(file_path)
         
         #END for url
     
