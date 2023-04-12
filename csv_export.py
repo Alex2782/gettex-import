@@ -6,7 +6,7 @@ from finanzen_net import *
 path = '../data'
 
 date = None
-date = '2023-03-29'
+#date = '2023-03-29'
 if date is not None: path += f'/{date}'
 
 # DE0007236101 #Siemens AG Namens-Aktien o.N.
@@ -39,7 +39,7 @@ if date is not None: path += f'/{date}'
 # DE0005104806;510480;AKTIE;Nein;SYZYGY AG O.N.;
 # DE0005110001;511000;AKTIE;Nein;ALL FOR ONE GROUP NA O.N.;
 
-isin_list = ["US88160R1014"] #DEBUG-Test Tesla
+#isin_list = ["US88160R1014"] #DEBUG-Test Tesla
 #isin_list += ["DE0007236101", "DE0008232125", "US83406F1021", "FI0009000681"]
 #isin_list += ["US4581401001", "NL0011821202", "DE0005552004", "US02079K3059", "US5949181045"]
 #isin_list += ["US88160R1014", "DE000BASF111", "DE000BAY0017", "DE000BFB0019"]
@@ -48,9 +48,11 @@ isin_list = ["US88160R1014"] #DEBUG-Test Tesla
 #              "DE0005103006", "DE0005104400", "DE0005104806", "DE0005110001"
 #              ]
 
+#isin_list = ["FI0009000681"] #DEBUG-Test FI0009000681
+
 # get all isin from type 'stock' ('AKTIE', check: finanzen_net.py)
-#isin_list = load_dict_data()['AKTIE']['isin_list']
-#print ('isin_list - len:', len(isin_list))
+isin_list = load_dict_data()['AKTIE']['isin_list']
+print ('isin_list - len:', len(isin_list))
 
 
 start = timeit.default_timer()
@@ -78,7 +80,7 @@ for isin in isin_list:
 
     if isin_grp_data.get(isin_grp) is None: isin_grp_data[isin_grp] = []
     isin_grp_data[isin_grp].append(dict(isin_idx=isin_idx['id'], isin=isin))
-    isin_out[isin] = 'Time,Open,High,Low,Close,Volume' + '\n'
+    isin_out[isin] = 'Date,HH,MM,Open,High,Low,Close,Volume,Volume_Ask,Volume_Bid' + '\n'
 
 
 for filepath in tqdm(files, unit=' files', unit_scale=True):
@@ -126,10 +128,10 @@ for filepath in tqdm(files, unit=' files', unit_scale=True):
         #idx 12, 13 = volatility: long, short
         #idx 14, 15, 16 = volatility activity: long, short, equal (no changes)
         #idx 17, 18 = no values counter: bid, ask  (price or size = 0)        
-        
+        #TODO
 
         # extra-data
-        # [counter, open,high,low,close, no-pre-bid,no-pre-ask,no-post, vola_profit, bid_long,bid_short,ask_long,ask_short, tmp_last_bid,tmp_last_ask]
+        # [counter, open,high,low,close, no-pre-bid,no-pre-ask,no-post, vola_profit, bid_long,bid_short,ask_long,ask_short]
         open_p = round(extra[1], 3)
         high = round(extra[2], 3)
         low = round(extra[3], 3)
@@ -139,12 +141,20 @@ for filepath in tqdm(files, unit=' files', unit_scale=True):
         if open_p == 0: continue
 
         volume = 0
+        volume_ask = 0
+        volume_bid = 0
+
         for p in post:
-            #print (p) #(1135, 47.66113, 142.62, 1, 1) -> time, sec, price, amount, type 
-            volume += p[2] * p[3]
+            #print (p) #(1135, 47.66113, 142.62, 1, 1) -> time, sec, price, amount, type (1 = ask, 2 = bid)
+            v = p[2] * p[3]
+            volume += v
+            type = p[4]
+            if type == 1: volume_ask += v
+            elif type == 2: volume_bid += v
 
         volume = round(volume, 3)
-        out = f'{file_date} {file_hh}:{file_mm},{open_p},{high},{low},{close},{volume}'
+        #out = f'{file_date} {file_hh}:{file_mm},{open_p},{high},{low},{close},{volume}'
+        out = f'{file_date},{file_hh},{file_mm},{open_p},{high},{low},{close},{volume},{volume_ask},{volume_bid}'
         isin_out[isin] += out + '\n'
 
 
