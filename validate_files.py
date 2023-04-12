@@ -163,7 +163,7 @@ def validate_files(path, validate_gz = False, validate_empty_isin = False, valid
 #
 #print('invalid_gz_files:', invalid_gz_files)
 
-sub_path = '/2023-04-11'
+sub_path = '/2023-04-12'
 
 path = '../data'
 validate_files(path + sub_path, True)

@@ -513,9 +513,9 @@ if __name__ == '__main__':
     #https://www.onvista.de/derivate/Optionsscheine/223755554-HB6HPZ-DE000HB6HPZ6
 
 
-    debug_gz = '../data/2023-03-16/pretrade.20230316.12.45.mund.csv.gz'
+    debug_gz = '../data/2023-03-16/pretrade.20230316.19.30.mund.csv.gz'
     time = None # '08:00'
-    pretrade_debug(debug_gz, 'DE000HG832C8', time)
+    pretrade_debug(debug_gz, 'LU2263803020', time)
 
 
     #arr = load_from_pickle('../data/2023-03-13/trade.20230313.14.45.HSBC.pickle.zip')

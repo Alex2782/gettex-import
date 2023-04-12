@@ -48,7 +48,7 @@ if date is not None: path += f'/{date}'
 #              "DE0005103006", "DE0005104400", "DE0005104806", "DE0005110001"
 #              ]
 
-#isin_list = ["FI0009000681"] #DEBUG-Test FI0009000681
+#isin_list = ["DE0007830572", "DE000TRAT0N7"] #DEBUG-Test
 
 # get all isin from type 'stock' ('AKTIE', check: finanzen_net.py)
 isin_list = load_dict_data()['AKTIE']['isin_list']
@@ -58,14 +58,21 @@ print ('isin_list - len:', len(isin_list))
 start = timeit.default_timer()
 
 isin_grp_dict = get_all_isin_groups()
-
 files = list_zip_files(path, True, True)
+
+ignore_group_list = ['HSBC', 'Goldman_Sachs', 'UniCredit']
 
 isin_grp_data = {}
 isin_out = {}
 
 for isin in isin_list:
-    isin_grp = ISIN_GROUPS_IDX.get(isin)
+
+    isin_grp = get_isin_group(isin)
+
+    if isin_grp in ignore_group_list:
+        print (f'IGNORE isin {isin}, GROUP: {isin_grp}')
+        continue
+
     isin_dict = isin_grp_dict[isin_grp]['isin_dict']
 
     #print ('isin:', isin)
@@ -80,7 +87,9 @@ for isin in isin_list:
 
     if isin_grp_data.get(isin_grp) is None: isin_grp_data[isin_grp] = []
     isin_grp_data[isin_grp].append(dict(isin_idx=isin_idx['id'], isin=isin))
-    isin_out[isin] = 'Date,HH,MM,Open,High,Low,Close,Volume,Volume_Ask,Volume_Bid' + '\n'
+    isin_out[isin] = 'Date,HH,MM,Open,High,Low,Close,Volume,Volume_Ask,Volume_Bid,' \
+                     +'no_pre_bid,no_pre_ask,no_post,vola_profit,bid_long,bid_short,ask_long,ask_short' \
+                     +'\n'
 
 
 for filepath in tqdm(files, unit=' files', unit_scale=True):
@@ -137,6 +146,15 @@ for filepath in tqdm(files, unit=' files', unit_scale=True):
         low = round(extra[3], 3)
         close = round(extra[4], 3)
 
+        no_pre_bid = extra[5]
+        no_pre_ask = extra[6]
+        no_post = extra[7]
+        vola_profit = extra[8]
+        bid_long = extra[9]
+        bid_short = extra[10]
+        ask_long = extra[11]
+        ask_short = extra[12]
+
         #skip 0 values
         if open_p == 0: continue
 
@@ -146,7 +164,7 @@ for filepath in tqdm(files, unit=' files', unit_scale=True):
 
         for p in post:
             #print (p) #(1135, 47.66113, 142.62, 1, 1) -> time, sec, price, amount, type (1 = ask, 2 = bid)
-            v = p[2] * p[3]
+            v = round(p[2] * p[3], 3)
             volume += v
             type = p[4]
             if type == 1: volume_ask += v
@@ -154,13 +172,21 @@ for filepath in tqdm(files, unit=' files', unit_scale=True):
 
         volume = round(volume, 3)
         #out = f'{file_date} {file_hh}:{file_mm},{open_p},{high},{low},{close},{volume}'
-        out = f'{file_date},{file_hh},{file_mm},{open_p},{high},{low},{close},{volume},{volume_ask},{volume_bid}'
+        out = f'{file_date},{file_hh},{file_mm},{open_p},{high},{low},{close},{volume},{volume_ask},{volume_bid},'\
+              + f'{no_pre_bid},{no_pre_ask},{no_post},{vola_profit},{bid_long},{bid_short},{ask_long},{ask_short}'
         isin_out[isin] += out + '\n'
 
 
 # writing csv files
 
+_MIN_SIZE_IN_KB = 10 # export only > 10 KB files 
+
 for isin in isin_out:
+
+    out_len = len(isin_out[isin]) / 1024
+    if  out_len < _MIN_SIZE_IN_KB: 
+        print (f'IGNORE isin {isin}, size: {out_len:.3f}')
+        continue 
 
     if date is not None:
         output_file = f'../data_ssd/{isin}.{date}.csv'

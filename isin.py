@@ -296,6 +296,13 @@ if __name__ == '__main__':
     #debug_isin('US88160R1014') 
     #debug_isin('DE0005493092')
 
+    #isin DE0007830572 not found
+    #isin DE0007830788 not found
+    #isin DE0007846867 not found
+    #isin DE0007856023 not found
+    #isin DE000TRAT0N7 not found
+    debug_isin('DE0007830572')
+    debug_isin('DE000TRAT0N7')
 
     #save_munc_isin_dict('../munc.isin.pickle.zip')
 
