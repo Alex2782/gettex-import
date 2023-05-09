@@ -503,7 +503,7 @@ if __name__ == '__main__':
 
     path = '../data/'
     from_date = '2023-03-13'
-    number_of_days = 5
+    number_of_days = 1
     output_top = 10
     selected_group = None  #options: False, None, 'HSBC', 'Goldman_Sachs', 'UniCredit'
     #sum_volume_stats, volume_day_stats = analyze_volume(path, from_date, number_of_days, output_top, selected_group)
@@ -513,9 +513,34 @@ if __name__ == '__main__':
     #https://www.onvista.de/derivate/Optionsscheine/223755554-HB6HPZ-DE000HB6HPZ6
 
 
-    debug_gz = '../data/2023-03-16/pretrade.20230316.19.30.mund.csv.gz'
+    #Daten prüfen: US5339001068, Preis plötzlich bei 212,50 Euro ? was steht im 'pretrade' und 'posttrade' ?
+    #20230220,14,45,165.0,212.5,165.0,212.5,0,0,0,4,4,1,20.471,0,-1.0,96.0,0
+    #20230220,15,00,212.5,212.5,164.0,164.0,0,0,0,65,65,0,20.941,0,0,0,-97.0
+
+    debug_gz = '../data/2023-05-05/pretrade.20230505.13.45.mund.csv.gz'
     time = None # '08:00'
-    pretrade_debug(debug_gz, 'LU2263803020', time)
+    #isin = 'DE000HG976C3' # KO - Put Tesla 50x
+    isin = 'DE000HG903S3' # KO - Put Tesla 20x
+    
+    #isin = 'US88160R1014' # Tesla
+    pretrade_debug(debug_gz, isin, time)
+
+    #TODO Bugfix: price / vola_profit ...
+    #../data/2023-02-20/pretrade.20230220.15.00.mund.csv.gz
+    #        isin |       timestamp |      bid | bid_size |      ask | ask_size |   spread |    price
+    #====================================================================================================
+    #US5339001068 | 14:45:11.260829 |    0.000 |        0 |    0.000 |        0 |    0.000 |    0.000
+    #US5339001068 | 14:45:11.547997 |    0.000 |        0 |    0.000 |        0 |    0.000 |    0.000
+    #US5339001068 | 14:45:26.412211 |  262.000 |      100 |  163.000 |      100 |   99.000 |  212.500
+    #US5339001068 | 14:45:31.418708 |  262.000 |      100 |  163.000 |      100 |   99.000 |  212.500
+    #US5339001068 | 14:45:31.695911 |  262.000 |      100 |  163.000 |      100 |   99.000 |  212.500
+    #US5339001068 | 14:45:32.099788 |  262.000 |      100 |  163.000 |      100 |   99.000 |  212.500
+    #US5339001068 | 14:45:40.974181 |    0.000 |        0 |    0.000 |        0 |    0.000 |    0.000
+    #US5339001068 | 14:45:51.350435 |    0.000 |        0 |    0.000 |        0 |    0.000 |    0.000
+    #US5339001068 | 14:46:11.354488 |    0.000 |        0 |    0.000 |        0 |    0.000 |    0.000    
+
+
+
 
 
     #arr = load_from_pickle('../data/2023-03-13/trade.20230313.14.45.HSBC.pickle.zip')

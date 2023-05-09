@@ -438,10 +438,15 @@ if __name__ == '__main__':
 
     
     #isin = 'US88160R1014' #Tesla  
-    isin = 'DE000HG832C8' #HSBC Knock-Out Produkte Long DAX
+    #isin = 'DE000HG832C8' #HSBC Knock-Out Produkte Long DAX
+    #isin = 'CA82509L1076'
+    isin = 'DE000HG976C3' # KO - Put Tesla
+    #isin = 'US88160R1014' # Tesla
 
     output_path = f'../{isin}.pickle.zip'
 
+    from_date = '2023-05-05'
+    number_of_days = 1
     output_data = get_isin_trades(path, from_date, number_of_days, isin)
     save_as_pickle(output_path, output_data)
     output_data = load_from_pickle(output_path)
