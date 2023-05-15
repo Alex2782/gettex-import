@@ -63,8 +63,8 @@ for t in range(3):
 
             print('check pre/post-files:', job_name1, '<->', job_name2)
             if job_name1 != job_name2:
-                print ('files are incomplete, TRY again in 3 seconds ...')
-                time.sleep(3)
+                print ('files are incomplete, TRY again in 10 seconds ...')
+                time.sleep(10)
                 break        
         
         if len (files) > 0: complete = True

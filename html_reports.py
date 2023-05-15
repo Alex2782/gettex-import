@@ -437,15 +437,18 @@ if __name__ == '__main__':
     #volume_html_output(sum_volume_stats, volume_day_stats, output_top)
 
     
-    #isin = 'US88160R1014' #Tesla  
+    isin = 'US88160R1014' #Tesla  
     #isin = 'DE000HG832C8' #HSBC Knock-Out Produkte Long DAX
     #isin = 'CA82509L1076'
-    isin = 'DE000HG976C3' # KO - Put Tesla
+    #isin = 'DE000HG976C3' # KO - Put Tesla
     #isin = 'US88160R1014' # Tesla
+    #isin_list = ["US88160R1014"] #DEBUG-Test Tesla
+    #isin_list += ['US83304A1060','US12468P1049','US19260Q1076','US62914V1061','US86771W1053']
+    #isin = 'US86771W1053' # Sunrun
 
     output_path = f'../{isin}.pickle.zip'
 
-    from_date = '2023-05-05'
+    from_date = '2023-04-03'
     number_of_days = 1
     output_data = get_isin_trades(path, from_date, number_of_days, isin)
     save_as_pickle(output_path, output_data)

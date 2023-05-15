@@ -172,7 +172,6 @@ def pretrade_list_to_dict(trade_list):
     #idx 11 = activity: count data
     #idx 12, 13 = volatility: long, short
     #idx 14, 15, 16 = volatility activity: long, short, equal (no changes)
-    #idx 17, 18 = no values counter: bid, ask  (price or size = 0)
 
     ret = {}
     ret['timestamp'] = trade_list[0]
