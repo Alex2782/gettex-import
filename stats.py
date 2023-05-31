@@ -517,10 +517,10 @@ if __name__ == '__main__':
     #20230220,14,45,165.0,212.5,165.0,212.5,0,0,0,4,4,1,20.471,0,-1.0,96.0,0
     #20230220,15,00,212.5,212.5,164.0,164.0,0,0,0,65,65,0,20.941,0,0,0,-97.0
 
-    debug_gz = '../data/2023-05-15/pretrade.20230515.13.45.mund.csv.gz'
+    debug_gz = '../data/2023-05-17/pretrade.20230517.13.45.mund.csv.gz'
     time = None # '08:00'
     #isin = 'DE000HG976C3' # KO - Put Tesla 50x
-    isin = 'DE000GP4ET17' # KO - Long - Goldman Sachs OE Turbo OS Tesla, 166.11
+    isin = 'DE000HG9N8H0' # KO Tesla
     
 
 

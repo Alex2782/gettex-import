@@ -8,11 +8,11 @@ import pandas as pd
 path = '../data/'
 #path = '../data_test/' #DEV-TEST
 
-from_date = '2023-05-15'
+from_date = '2023-05-27'
 number_of_days = 10
 
 isin_list = []
-isin_list += ["US88160R1014"] #DEBUG-Test Tesla
+#isin_list += ["US88160R1014"] #DEBUG-Test Tesla
 #isin_list += ['US83304A1060','US12468P1049','US19260Q1076','US62914V1061','US86771W1053']
 
 #auf NASDAQ 100 [US6311011026] Long Hebel 20x
@@ -28,10 +28,56 @@ isin_list += ["US88160R1014"] #DEBUG-Test Tesla
 #isin_list += ['DE000GP27435','DE000GZ920Z0','DE000HR6YUZ3']
 
 
+# -------------------------------------------------
+# write_to_files
+# -------------------------------------------------
+def write_to_files(isin_out):
+    # writing files
+    #columns = ['date','hh','mm','open','high','low','close','volume','volume_ask','volume_bid',
+    #            'no_pre_bid','no_pre_ask','no_post','vola_profit','bid_long','bid_short','ask_long','ask_short']
+
+    columns = ['date','time','bid_size_max','bid_size_min','ask_size_max','ask_size_min','spread_max','spread_min',
+                'open','high','low','close', 'activity', 'volatility_long', 'volatility_short', 
+                'vola_activity_long','vola_activity_short','vola_activity_equal']
+
+    #tqdm(files, unit=' files', unit_scale=True, desc=str_date)
+    for isin in tqdm(isin_out, desc='writing'):
+
+        data = isin_out[isin]
+        out_len = len(data)
+
+        df = pd.DataFrame(data, columns=columns)
+        tm = df['date'].astype(str) + ' ' + df['time'].astype(str)
+        tm_data = pd.to_datetime(tm).dt.tz_localize('UTC')
+        df.insert(0, 'datetime', tm_data)
+        df.set_index('datetime', inplace=True)
+
+        del df['date']
+        del df['time']
+
+        #output_file = f'../data_ssd/{isin}.csv'
+        output_file = f'../data_ssd/{isin}.feather'
+
+        # concat if exists, remove duplicated timestamps
+        if os.path.exists(output_file):
+            df_old = pd.read_feather(output_file)
+            df_old.set_index('datetime', inplace=True)
+            df_old = df_old[~df_old.index.isin(df.index)]
+            df = pd.concat([df_old, df], ignore_index=False)
+    
+
+        #df.to_csv(output_file)
+        df.reset_index(inplace=True)
+        df.to_feather(output_file)
+
+    isin_out[isin] = []
+    pass
+# -----------------------------------------------------------------------------
+
 
 # get all isin from type 'stock' ('AKTIE', check: finanzen_net.py)
-#isin_list = load_dict_data()['AKTIE']['isin_list']
-#print ('isin_list - len:', len(isin_list))
+isin_list = load_dict_data()['AKTIE']['isin_list']
+print ('isin_list - len:', len(isin_list))
 
 start = timeit.default_timer()
 date = datetime.datetime.strptime(from_date, '%Y-%m-%d')
@@ -39,7 +85,7 @@ date = datetime.datetime.strptime(from_date, '%Y-%m-%d')
 
 #prepare Output
 isin_grp_dict = get_all_isin_groups()
-ignore_group_list = [] #['HSBC', 'Goldman_Sachs', 'UniCredit']
+ignore_group_list = ['HSBC', 'Goldman_Sachs', 'UniCredit']
 
 isin_grp_data = {}
 isin_out = {}
@@ -179,42 +225,7 @@ for i in range(number_of_days):
 
 
 
-# writing files
-#columns = ['date','hh','mm','open','high','low','close','volume','volume_ask','volume_bid',
-#            'no_pre_bid','no_pre_ask','no_post','vola_profit','bid_long','bid_short','ask_long','ask_short']
-
-columns = ['date','time','bid_size_max','bid_size_min','ask_size_max','ask_size_min','spread_max','spread_min',
-            'open','high','low','close', 'activity', 'volatility_long', 'volatility_short', 
-            'vola_activity_long','vola_activity_short','vola_activity_equal']
-
-for isin in isin_out:
-
-    data = isin_out[isin]
-    out_len = len(data)
-
-    df = pd.DataFrame(data, columns=columns)
-    tm = df['date'].astype(str) + ' ' + df['time'].astype(str)
-    tm_data = pd.to_datetime(tm).dt.tz_localize('UTC')
-    df.insert(0, 'datetime', tm_data)
-    df.set_index('datetime', inplace=True)
-
-    del df['date']
-    del df['time']
-
-    #output_file = f'../data_ssd/{isin}.csv'
-    output_file = f'../data_ssd/{isin}.feather'
-
-    # concat if exists, remove duplicated timestamps
-    if os.path.exists(output_file):
-        df_old = pd.read_feather(output_file)
-        df_old.set_index('datetime', inplace=True)
-        df_old = df_old[~df_old.index.isin(df.index)]
-        df = pd.concat([df_old, df], ignore_index=False)
- 
-
-    #df.to_csv(output_file)
-    df.reset_index(inplace=True)
-    df.to_feather(output_file)
+write_to_files(isin_out)
 
 stop = timeit.default_timer()
 show_runtime(f'export: ', start, stop)
